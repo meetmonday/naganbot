@@ -1,6 +1,8 @@
 package container
 
 import (
+	"strings"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sarulabs/di"
 	"github.com/taranovegor/naganbot/config"
@@ -12,6 +14,7 @@ import (
 	"github.com/taranovegor/naganbot/translator"
 	"github.com/taranovegor/naganbot/usecase"
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -75,10 +78,18 @@ func buildThirdParty(builder *di.Builder) {
 	builder.Add(di.Def{
 		Name: ORM,
 		Build: func(ctn di.Container) (interface{}, error) {
-			return gorm.Open(
-				mysql.Open(config.GetEnv(config.DatabaseDsn)),
-				&gorm.Config{},
-			)
+			dsn := config.GetEnv(config.DatabaseDsn)
+			scheme := strings.Split(dsn, "://")[0]
+
+			var dialector gorm.Dialector
+			switch scheme {
+			case "postgres":
+				dialector = postgres.Open(dsn)
+			default:
+				dialector = mysql.Open(dsn)
+			}
+
+			return gorm.Open(dialector, &gorm.Config{})
 		},
 	})
 

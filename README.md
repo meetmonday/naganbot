@@ -4,7 +4,7 @@ Shoot yourself in Russian roulette
 ## Set up
 ### Requirements
 - Docker, docker-compose
-- MySQL 8/MariaDB 11
+- PostgreSQL 18 or MySQL 8/MariaDB 11
 
 ### Configuration
 Copy an instance of the environment file and save it as a file `.env`
