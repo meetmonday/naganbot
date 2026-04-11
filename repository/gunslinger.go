@@ -92,11 +92,11 @@ func (repo GunslingerRepository) CountNumberOfSelfShotsInChat(userID int64, chat
 }
 
 func (repo GunslingerRepository) getQueryTopShotPlayersInChat(chatID int64) *gorm.DB {
-	return repo.orm.Model(&domain.Gunslinger{}).
+	return repo.orm.Table("gunslingers").
 		Select("player_id, COUNT(chat_id) as times").
-		InnerJoins("Game").
-		Where("chat_id = ?", chatID).
-		Where("played_at IS NOT NULL").
+		Joins("INNER JOIN games ON gunslingers.game_id = games.id").
+		Where("games.chat_id = ?", chatID).
+		Where("games.played_at IS NOT NULL").
 		Where("shot_himself = ?", true).
 		Group("player_id").
 		Order("times DESC").
