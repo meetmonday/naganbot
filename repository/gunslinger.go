@@ -67,7 +67,7 @@ func (repo GunslingerRepository) GetTopShotPlayersInChat(chatID int64) ([]domain
 func (repo GunslingerRepository) GetTopShopPlayersByYearInChat(chatID int64, year int) ([]domain.GunslingerTopShotPlayer, error) {
 	var players []domain.GunslingerTopShotPlayer
 	err := repo.getQueryTopShotPlayersInChat(chatID).
-		Where("YEAR(Game.created_at) = ?", year).
+		Where("EXTRACT(YEAR FROM games.created_at) = ?", year).
 		Find(&players).
 		Error
 
