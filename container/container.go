@@ -265,7 +265,7 @@ func buildService(builder *di.Builder) {
 		Build: func(ctn di.Container) (interface{}, error) {
 			return service.NewBulletFactory(
 				service.NewLeadBullet(),
-				service.WeightedBullet{Chance: 8, Bullet: service.NewAtomicBullet()},
+				service.WeightedBullet{Chance: 3, Bullet: service.NewAtomicBullet()},
 			), nil
 		},
 	})
