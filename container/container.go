@@ -26,6 +26,7 @@ const (
 	CommandForce            = "command_force"
 	CommandJoin             = "command_join"
 	CommandJoined           = "command_joined"
+	CommandLog              = "command_log"
 	CommandSettings         = "command_settings"
 	CommandRegistry         = "command_registry"
 	CommandStat             = "command_stat"
@@ -163,6 +164,17 @@ func buildHandlerCommand(builder *di.Builder) {
 	})
 
 	builder.Add(di.Def{
+		Name: CommandLog,
+		Build: func(ctn di.Container) (interface{}, error) {
+			return command.NewLogHandler(
+				ctn.Get(Bot).(*service.Bot),
+				ctn.Get(Translator).(*translator.Translator),
+				ctn.Get(RepositoryGame).(domain.GameRepository),
+			), nil
+		},
+	})
+
+	builder.Add(di.Def{
 		Name: CommandSettings,
 		Build: func(ctn di.Container) (interface{}, error) {
 			return command.NewSettingsHandler(
@@ -204,6 +216,7 @@ func buildHandlerCommand(builder *di.Builder) {
 				ctn.Get(CommandForce).(command.Handler),
 				ctn.Get(CommandJoin).(command.Handler),
 				ctn.Get(CommandJoined).(command.Handler),
+				ctn.Get(CommandLog).(command.Handler),
 				ctn.Get(CommandSettings).(command.Handler),
 				ctn.Get(CommandTop).(command.Handler),
 				ctn.Get(CommandStat).(command.Handler),

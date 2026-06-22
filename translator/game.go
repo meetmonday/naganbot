@@ -215,5 +215,7 @@ var GameTranslations = translations{
 			many: "Теперь в игре могут участвовать %i игроков",
 		}},
 		"settings will be applied for next games": {message: SimpleMessage("Изменения вступят в силу со следующего раунда")},
+		"game log header": {message: SimpleMessage("Последние %number игр:")},
+		"game log item":   {message: SimpleMessage("%date - %username")},
 	},
 }

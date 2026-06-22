@@ -21,6 +21,7 @@ type Game struct {
 
 type GameRepository interface {
 	GetByID(uuid.UUID) (*Game, error)
+	GetLatestGamesInChat(int64, int) ([]Game, error)
 	GetLatestForChat(int64) (*Game, error)
 	GetActiveForChat(int64) (*Game, error)
 	Store(*Game) error
