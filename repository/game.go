@@ -26,6 +26,18 @@ func (repo GameRepository) GetByID(id uuid.UUID) (*domain.Game, error) {
 	return &game, err
 }
 
+func (repo GameRepository) GetLatestGamesInChat(chatID int64, limit int) ([]domain.Game, error) {
+	var games []domain.Game
+	err := repo.getQueryByChat(chatID).
+		Where("played_at IS NOT NULL").
+		Order("played_at DESC").
+		Limit(limit).
+		Find(&games).
+		Error
+
+	return games, err
+}
+
 func (repo GameRepository) GetLatestForChat(chatID int64) (*domain.Game, error) {
 	var game domain.Game
 	err := repo.getQueryByChat(chatID).
