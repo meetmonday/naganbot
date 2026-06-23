@@ -31,7 +31,7 @@ func NewLogHandler(
 }
 
 func (hdlr LogHandler) Name() string {
-	return "log"
+	return "history"
 }
 
 func (hdlr LogHandler) Execute(msg *tgbotapi.Message) {
@@ -41,6 +41,9 @@ func (hdlr LogHandler) Execute(msg *tgbotapi.Message) {
 	if arg := msg.CommandArguments(); len(arg) > 0 {
 		if n, err := strconv.Atoi(arg); err == nil && n > 0 {
 			limit = n
+			if n > 50 {
+				limit = 50
+			}
 		}
 	}
 
