@@ -81,5 +81,6 @@ func (repo GameRepository) getQueryByChat(chatID int64) *gorm.DB {
 			return db.Order("joined_at ASC")
 		}).
 		Preload("Gunslingers.Player").
+		Preload("Owner").
 		Where("chat_id = ?", chatID)
 }
