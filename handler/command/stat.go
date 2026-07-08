@@ -38,13 +38,22 @@ func (hdlr StatHandler) Execute(msg *tgbotapi.Message) {
 	numberOfShotHimself := hdlr.gunslinger.CountNumberOfSelfShotsInChat(userID, chatID)
 	participationStreak, lossStreak := hdlr.gunslinger.GetPlayerStreaks(userID, chatID)
 
-	hdlr.bot.SendMessage(chatID, hdlr.trans.Get("user game statistics", translator.Config{
-		Args: map[string]string{
-			"%games":    strconv.FormatInt(numberOfGames, 10),
-			"%shots":    strconv.FormatInt(numberOfShotHimself, 10),
-			"%ps_games": strconv.Itoa(participationStreak),
-			"%ls_games": strconv.Itoa(lossStreak),
-		},
+	message := hdlr.trans.Get("user game statistics games", translator.Config{
+		Args:  map[string]string{"%games": strconv.FormatInt(numberOfGames, 10)},
+		Count: int(numberOfGames),
+	})
+	message += hdlr.trans.Get("user game statistics shots", translator.Config{
+		Args:  map[string]string{"%shots": strconv.FormatInt(numberOfShotHimself, 10)},
 		Count: int(numberOfShotHimself),
-	}))
+	})
+	message += hdlr.trans.Get("user game statistics participation streak", translator.Config{
+		Args:  map[string]string{"%ps_games": strconv.Itoa(participationStreak)},
+		Count: participationStreak,
+	})
+	message += hdlr.trans.Get("user game statistics loss streak", translator.Config{
+		Args:  map[string]string{"%ls_games": strconv.Itoa(lossStreak)},
+		Count: lossStreak,
+	})
+
+	hdlr.bot.SendMessage(chatID, message)
 }
