@@ -100,6 +100,18 @@ func (m *mockGunslingerRepoForScheduler) GetDistinctPlayerIDsInChat(chatID int64
 	return nil, nil
 }
 
+func (m *mockGunslingerRepoForScheduler) GetTopCreatorsInChat(chatID int64, limit int) ([]domain.TopPlayer, error) {
+	return nil, nil
+}
+
+func (m *mockGunslingerRepoForScheduler) GetTopActivePlayersInChat(chatID int64, limit int) ([]domain.TopPlayer, error) {
+	return nil, nil
+}
+
+func (m *mockGunslingerRepoForScheduler) GetTopStreaksInChat(chatID int64, limit int) ([]domain.PlayerStreak, error) {
+	return nil, nil
+}
+
 type mockStarter struct {
 	started []uuid.UUID
 }

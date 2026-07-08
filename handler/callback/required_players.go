@@ -13,8 +13,8 @@ import (
 
 var revolverOptions = []int{4, 5, 6, 7, 8, 9}
 
-func RevolverKeyboard(mode domain.GameMode, selected int, trans *translator.Translator) []map[string]string {
-	var keyboard []map[string]string
+func RevolverKeyboard(mode domain.GameMode, selected int, trans *translator.Translator) service.InlineKeyboard {
+	var keyboard service.InlineKeyboard
 	for _, n := range revolverOptions {
 		s := strconv.Itoa(n)
 		arg := RequiredPlayers.SetArgs(s).ToString()
@@ -22,7 +22,7 @@ func RevolverKeyboard(mode domain.GameMode, selected int, trans *translator.Tran
 		if mode == domain.GameModeClassic && n == selected {
 			txt = fmt.Sprintf("🔫 %s", txt)
 		}
-		keyboard = append(keyboard, map[string]string{arg: txt})
+		keyboard = append(keyboard, []service.KeyboardButton{{Data: arg, Label: txt}})
 	}
 
 	dynamicArg := RequiredPlayers.SetArgs("dynamic").ToString()
@@ -30,7 +30,7 @@ func RevolverKeyboard(mode domain.GameMode, selected int, trans *translator.Tran
 	if mode == domain.GameModeDynamic {
 		dynamicTxt = fmt.Sprintf("🔫 %s", dynamicTxt)
 	}
-	keyboard = append(keyboard, map[string]string{dynamicArg: dynamicTxt})
+	keyboard = append(keyboard, []service.KeyboardButton{{Data: dynamicArg, Label: dynamicTxt}})
 
 	return keyboard
 }

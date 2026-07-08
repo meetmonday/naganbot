@@ -160,6 +160,23 @@ var GameTranslations = translations{
 			few:  "%i. %user - %times раза",
 			many: "%i. %user - %times раз",
 		}},
+		"top_tab_shot":     {message: SimpleMessage("🏆 Проигравшие")},
+		"top_tab_creators": {message: SimpleMessage("👑 Создатели")},
+		"top_tab_active":   {message: SimpleMessage("🎯 Активные")},
+		"top_tab_streak":   {message: SimpleMessage("🔥 Стрелки")},
+		"top creators header": {message: SimpleMessage("Топ-%number создателей:")},
+		"top active header":   {message: SimpleMessage("Топ-%number активных игроков:")},
+		"top streak header":   {message: SimpleMessage("Топ-%number по текущей серии:")},
+		"top streak player": {message: PluralMessage{
+			one:  "%i. %user - %times игра (пик: %peak)",
+			few:  "%i. %user - %times игры (пик: %peak)",
+			many: "%i. %user - %times игр (пик: %peak)",
+		}},
+		"top streak player peak": {message: PluralMessage{
+			one:  "%i. %user - %times игра 🏆",
+			few:  "%i. %user - %times игры 🏆",
+			many: "%i. %user - %times игр 🏆",
+		}},
 		"available only in chat": {message: SimpleMessage("Русская рулетка игра не для одного")},
 		"player already in game invite": {
 			oneOf: []oneOf{

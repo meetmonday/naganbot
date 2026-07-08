@@ -234,6 +234,123 @@ func (repo GunslingerRepository) getQueryTopShotPlayersInChat(chatID int64) *gor
 		Limit(10)
 }
 
+func (repo GunslingerRepository) GetTopCreatorsInChat(chatID int64, limit int) ([]domain.TopPlayer, error) {
+	var players []domain.TopPlayer
+	err := repo.orm.Table("games").
+		Select("owner_id as player_id, COUNT(id) as times").
+		Where("chat_id = ?", chatID).
+		Where("played_at IS NOT NULL").
+		Group("owner_id").
+		Order("times DESC").
+		Limit(limit).
+		Find(&players).Error
+
+	return players, err
+}
+
+func (repo GunslingerRepository) GetTopActivePlayersInChat(chatID int64, limit int) ([]domain.TopPlayer, error) {
+	var players []domain.TopPlayer
+	err := repo.orm.Table("gunslingers").
+		Select("gunslingers.player_id, COUNT(gunslingers.game_id) as times").
+		Joins("INNER JOIN games ON gunslingers.game_id = games.id").
+		Where("games.chat_id = ?", chatID).
+		Where("games.played_at IS NOT NULL").
+		Group("gunslingers.player_id").
+		Order("times DESC").
+		Limit(limit).
+		Find(&players).Error
+
+	return players, err
+}
+
+func (repo GunslingerRepository) GetTopStreaksInChat(chatID int64, limit int) ([]domain.PlayerStreak, error) {
+	type pair struct {
+		GameID   uuid.UUID
+		PlayerID int64
+	}
+
+	var pairs []pair
+	err := repo.orm.Table("games").
+		Select("games.id AS game_id, gunslingers.player_id").
+		Joins("INNER JOIN gunslingers ON gunslingers.game_id = games.id").
+		Where("games.chat_id = ?", chatID).
+		Where("games.played_at IS NOT NULL").
+		Order("games.played_at DESC").
+		Find(&pairs).Error
+	if err != nil {
+		return nil, err
+	}
+
+	gamePlayersMap := make(map[uuid.UUID][]int64)
+	var gameOrder []uuid.UUID
+	for _, p := range pairs {
+		players, ok := gamePlayersMap[p.GameID]
+		if !ok {
+			gameOrder = append(gameOrder, p.GameID)
+		}
+		gamePlayersMap[p.GameID] = append(players, p.PlayerID)
+	}
+
+	playerCurrent := make(map[int64]int)
+	playerPeak := make(map[int64]int)
+
+	for _, gid := range gameOrder {
+		players := gamePlayersMap[gid]
+		playerSet := make(map[int64]bool, len(players))
+		for _, pid := range players {
+			playerSet[pid] = true
+			playerCurrent[pid]++
+		}
+
+		for pid := range playerCurrent {
+			if !playerSet[pid] {
+				if playerCurrent[pid] > playerPeak[pid] {
+					playerPeak[pid] = playerCurrent[pid]
+				}
+				delete(playerCurrent, pid)
+			}
+		}
+	}
+
+	for pid, streak := range playerCurrent {
+		if streak > playerPeak[pid] {
+			playerPeak[pid] = streak
+		}
+	}
+
+	var result []domain.PlayerStreak
+	for pid, streak := range playerCurrent {
+		result = append(result, domain.PlayerStreak{
+			PlayerID:            pid,
+			ParticipationStreak: streak,
+			PeakStreak:          playerPeak[pid],
+		})
+	}
+
+	for pid, peak := range playerPeak {
+		if _, inCurrent := playerCurrent[pid]; !inCurrent {
+			result = append(result, domain.PlayerStreak{
+				PlayerID:            pid,
+				ParticipationStreak: 0,
+				PeakStreak:          peak,
+			})
+		}
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].ParticipationStreak == result[j].ParticipationStreak {
+			return result[i].PeakStreak > result[j].PeakStreak
+		}
+		return result[i].ParticipationStreak > result[j].ParticipationStreak
+	})
+
+	if len(result) > limit {
+		result = result[:limit]
+	}
+
+	return result, nil
+}
+
 func (repo GunslingerRepository) getQueryPlayerGamesInChat(userID int64, chatID int64) *gorm.DB {
 	return repo.orm.Model(&domain.Gunslinger{}).
 		InnerJoins("Game").

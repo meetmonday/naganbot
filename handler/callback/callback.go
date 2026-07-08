@@ -9,6 +9,7 @@ import (
 
 const (
 	RequiredPlayers Pattern = "required-players"
+	TopTab          Pattern = "top_tab"
 )
 
 type Pattern string

@@ -24,6 +24,7 @@ const (
 	BotTelegram             = "bot_telegram"
 	CallbackRegistry        = "callback_registry"
 	CallbackRequiredPlayers = "callback_required_players"
+	CallbackTopTab         = "callback_top_tab"
 	CommandForce            = "command_force"
 	CommandJoin             = "command_join"
 	CommandJoined           = "command_joined"
@@ -118,6 +119,7 @@ func buildHandlerCallback(builder *di.Builder) {
 		Build: func(ctn di.Container) (interface{}, error) {
 			return callback.NewRegistry(
 				ctn.Get(CallbackRequiredPlayers).(callback.Handler),
+				ctn.Get(CallbackTopTab).(callback.Handler),
 			), nil
 		},
 	})
@@ -129,6 +131,18 @@ func buildHandlerCallback(builder *di.Builder) {
 				ctn.Get(RepositoryChat).(domain.ChatRepository),
 				ctn.Get(Bot).(*service.Bot),
 				ctn.Get(Translator).(*translator.Translator),
+			), nil
+		},
+	})
+
+	builder.Add(di.Def{
+		Name: CallbackTopTab,
+		Build: func(ctn di.Container) (interface{}, error) {
+			return callback.NewTopTab(
+				ctn.Get(Bot).(*service.Bot),
+				ctn.Get(Translator).(*translator.Translator),
+				ctn.Get(RepositoryUser).(domain.UserRepository),
+				ctn.Get(RepositoryGunslinger).(domain.GunslingerRepository),
 			), nil
 		},
 	})

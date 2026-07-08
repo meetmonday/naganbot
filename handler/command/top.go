@@ -6,6 +6,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/taranovegor/naganbot/domain"
+	"github.com/taranovegor/naganbot/handler/callback"
 	"github.com/taranovegor/naganbot/service"
 	"github.com/taranovegor/naganbot/translator"
 )
@@ -90,5 +91,37 @@ func (hdlr TopHandler) Execute(msg *tgbotapi.Message) {
 		}
 	}
 
-	hdlr.bot.SendMessage(chatID, message)
+	keyboard := hdlr.buildKeyboard("shot")
+	hdlr.bot.SendInlineKeyboard(chatID, message, keyboard)
+}
+
+func (hdlr TopHandler) buildKeyboard(activeTab string) service.InlineKeyboard {
+	tabs := []struct {
+		key      string
+		transKey string
+	}{
+		{"shot", "top_tab_shot"},
+		{"creators", "top_tab_creators"},
+		{"active", "top_tab_active"},
+		{"streak", "top_tab_streak"},
+	}
+
+	var row1, row2 []service.KeyboardButton
+	for i, t := range tabs {
+		label := hdlr.trans.Get(t.transKey, translator.Config{})
+		if t.key == activeTab {
+			label = "▸ " + label
+		}
+		btn := service.KeyboardButton{
+			Data:  callback.TopTab.SetArgs(t.key).ToString(),
+			Label: label,
+		}
+		if i < 2 {
+			row1 = append(row1, btn)
+		} else {
+			row2 = append(row2, btn)
+		}
+	}
+
+	return service.InlineKeyboard{row1, row2}
 }

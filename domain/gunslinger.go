@@ -18,9 +18,15 @@ type Gunslinger struct {
 type PlayerStreak struct {
 	PlayerID            int64
 	ParticipationStreak int
+	PeakStreak          int
 }
 
 type GunslingerTopShotPlayer struct {
+	PlayerId int64
+	Times    int
+}
+
+type TopPlayer struct {
 	PlayerId int64
 	Times    int
 }
@@ -37,6 +43,9 @@ type GunslingerRepository interface {
 	GetPlayerStreaks(userID int64, chatID int64) (participationStreak int, lossStreak int)
 	GetPlayersWithStreakInChat(chatID int64, excludeGameID uuid.UUID) ([]PlayerStreak, error)
 	GetDistinctPlayerIDsInChat(chatID int64) ([]int64, error)
+	GetTopCreatorsInChat(chatID int64, limit int) ([]TopPlayer, error)
+	GetTopActivePlayersInChat(chatID int64, limit int) ([]TopPlayer, error)
+	GetTopStreaksInChat(chatID int64, limit int) ([]PlayerStreak, error)
 }
 
 func NewGunslinger(gameID uuid.UUID, playerID int64) *Gunslinger {

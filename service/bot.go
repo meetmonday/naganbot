@@ -8,6 +8,13 @@ import (
 
 const parseMode = tgbotapi.ModeHTML
 
+type KeyboardButton struct {
+	Data  string
+	Label string
+}
+
+type InlineKeyboard [][]KeyboardButton
+
 type Bot struct {
 	api *tgbotapi.BotAPI
 }
@@ -53,20 +60,23 @@ func (bot Bot) Kick(chatID int64, userID int64) error {
 	return bot.Ban(chatID, userID, time.Now().Add(time.Minute).Unix())
 }
 
-func (bot Bot) SendInlineKeyboard(chatID int64, text string, keyboard []map[string]string) error {
+func (bot Bot) buildKeyboardMarkup(keyboard InlineKeyboard) tgbotapi.InlineKeyboardMarkup {
 	var rows [][]tgbotapi.InlineKeyboardButton
 	for _, row := range keyboard {
 		var cols []tgbotapi.InlineKeyboardButton
-		for key, val := range row {
-			cols = append(cols, tgbotapi.NewInlineKeyboardButtonData(val, key))
+		for _, btn := range row {
+			cols = append(cols, tgbotapi.NewInlineKeyboardButtonData(btn.Label, btn.Data))
 		}
 		rows = append(rows, tgbotapi.NewInlineKeyboardRow(cols...))
 	}
+	return tgbotapi.NewInlineKeyboardMarkup(rows...)
+}
 
+func (bot Bot) SendInlineKeyboard(chatID int64, text string, keyboard InlineKeyboard) error {
 	_, err := bot.api.Send(tgbotapi.MessageConfig{
 		BaseChat: tgbotapi.BaseChat{
 			ChatID:      chatID,
-			ReplyMarkup: tgbotapi.NewInlineKeyboardMarkup(rows...),
+			ReplyMarkup: bot.buildKeyboardMarkup(keyboard),
 		},
 		ParseMode: parseMode,
 		Text:      text,
@@ -75,17 +85,17 @@ func (bot Bot) SendInlineKeyboard(chatID int64, text string, keyboard []map[stri
 	return err
 }
 
-func (bot Bot) EditMessageReplyMarkup(chatID int64, messageID int, keyboard []map[string]string) error {
-	var rows [][]tgbotapi.InlineKeyboardButton
-	for _, row := range keyboard {
-		var cols []tgbotapi.InlineKeyboardButton
-		for key, val := range row {
-			cols = append(cols, tgbotapi.NewInlineKeyboardButtonData(val, key))
-		}
-		rows = append(rows, tgbotapi.NewInlineKeyboardRow(cols...))
-	}
+func (bot Bot) EditMessage(chatID int64, messageID int, text string, keyboard InlineKeyboard) error {
+	edit := tgbotapi.NewEditMessageText(chatID, messageID, text)
+	edit.ParseMode = parseMode
+	markup := bot.buildKeyboardMarkup(keyboard)
+	edit.ReplyMarkup = &markup
+	_, err := bot.api.Request(edit)
+	return err
+}
 
-	markup := tgbotapi.NewInlineKeyboardMarkup(rows...)
+func (bot Bot) EditMessageReplyMarkup(chatID int64, messageID int, keyboard InlineKeyboard) error {
+	markup := bot.buildKeyboardMarkup(keyboard)
 	_, err := bot.api.Request(tgbotapi.NewEditMessageReplyMarkup(chatID, messageID, markup))
 
 	return err
