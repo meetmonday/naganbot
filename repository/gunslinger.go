@@ -103,7 +103,7 @@ func (repo GunslingerRepository) GetPlayerStreaks(userID int64, chatID int64) (i
 	rows, err := repo.orm.Raw(`
 		SELECT
 			CASE WHEN gs.player_id IS NOT NULL THEN 1 ELSE 0 END AS participated,
-			COALESCE(gs.shot_himself, 0) AS shot_himself
+			CASE WHEN gs.shot_himself IS TRUE THEN 1 ELSE 0 END AS shot_himself
 		FROM games g
 		LEFT JOIN gunslingers gs ON gs.game_id = g.id AND gs.player_id = ?
 		WHERE g.chat_id = ? AND g.played_at IS NOT NULL
