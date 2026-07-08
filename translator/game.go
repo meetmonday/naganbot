@@ -54,7 +54,7 @@ var GameTranslations = translations{
 				{message: SimpleMessage("Добро пожаловать. Назад только в гробу.")},
 			},
 		},
-		"joining the game details waiting": {message: SimpleMessage("\nСобралось %count. Жду %min. Вместимость — %max. Кто следующий?")},
+		"joining the game details waiting": {message: SimpleMessage("\nСобралось %count. Жду минимум %min. Вместимость — %max. Кто следующий?")},
 		"joining the game details deadline": {message: SimpleMessage("\n%count/%max. Старт %deadline. Время летит — я считаю секунды.")},
 		"play the game": {
 			oneOf: []oneOf{
@@ -183,11 +183,11 @@ var GameTranslations = translations{
 		"available only in chat": {message: SimpleMessage("Я не работаю в одиночку. Приведи меня в чат, и смерть найдёт компанию.")},
 		"player already in game invite": {
 			oneOf: []oneOf{
-				{message: SimpleMessage("\nМожет %player хочет умереть сегодня? Я бы с удовольствием.")},
+				{message: SimpleMessage("\nМожет, %player хочет умереть сегодня? Я бы с удовольствием.")},
 				{message: SimpleMessage("\nА как насчёт %player? Я не привередлив, но гость будет кстати.")},
 				{message: SimpleMessage("\n%player, я жду и тебя. Присоединяйся к празднику.")},
 				{message: SimpleMessage("\n%player, твоя очередь. Я помню тебя.")},
-				{message: SimpleMessage("\nСкучно одних. %player, давай веселее.")},
+				{message: SimpleMessage("\nСкучно одному. %player, давай веселее.")},
 				{message: SimpleMessage("\n%player, рискнёшь? Я обещаю — будет незабываемо.")},
 			},
 		},
@@ -231,7 +231,7 @@ var GameTranslations = translations{
 				{message: SimpleMessage("Смерть переваривает ужин. Подожди своей очереди.")},
 				{message: SimpleMessage("Скоро начнём. Я просто предвкушаю.")},
 				{message: SimpleMessage("Я на перекуре. Не мешай.")},
-				{message: SimpleMessage("Техобслуживание. Скоро вернусь. Не скучайте.")},
+				{message: SimpleMessage("Техобслуживание. Скоро вернусь. Не скучай.")},
 			},
 		},
 		"active game not found": {
@@ -244,7 +244,7 @@ var GameTranslations = translations{
 		"not enough players": {
 			oneOf: []oneOf{
 				{message: SimpleMessage("Мало жертв. Я люблю, когда толпа. Приведи ещё.")},
-				{message: SimpleMessage("Некого убивать. Сходи набери команду.")},
+				{message: SimpleMessage("Некого убивать. Сходи, набери команду.")},
 				{message: SimpleMessage("Мало мяса. Я голоден, но не настолько.")},
 			},
 		},
@@ -252,7 +252,7 @@ var GameTranslations = translations{
 		"user game statistics shots":             {message: PluralMessage{one: "\nИз них проиграл %shots раз. Неплохо.", few: "\nИз них проиграл %shots раза. Неплохо.", many: "\nИз них проиграл %shots раз. Неплохо."}},
 		"user game statistics participation streak": {message: PluralMessage{one: "\nСерия: %ps_games игра подряд. Ты мне нравишься.", few: "\nСерия: %ps_games игры подряд. Ты мне нравишься.", many: "\nСерия: %ps_games игр подряд. Ты мне нравишься."}},
 		"user game statistics loss streak":       {message: PluralMessage{one: "\nСерия поражений: %ls_games раз. Впечатляет.", few: "\nСерия поражений: %ls_games раза. Впечатляет.", many: "\nСерия поражений: %ls_games раз. Впечатляет."}},
-		"fomo reminder":                          {message: SimpleMessage("Время на исходе. %players, я жду. /gnjoin")},
+
 		"available settings below":               {message: SimpleMessage("Настройки револьвера:")},
 		"settings can be changed only by admins": {message: SimpleMessage("Только старшие по званию могут трогать настройки.")},
 		"4 shot revolver":                        {message: SimpleMessage("Colt Cloverleaf — 4")},
@@ -271,7 +271,7 @@ var GameTranslations = translations{
 		"dynamic mode enabled":                    {message: SimpleMessage("Режим — динамический. Жду в гости.")},
 		"dynamic game deadline":                   {message: SimpleMessage("Собрано %count жертв. Старт %deadline.")},
 		"game starts at midnight":                 {message: SimpleMessage("в полночь. Романтично.")},
-		"game starts in less than a minute":       {message: SimpleMessage("меньше чем через минуту. Я уже дрожу.")},
+		"game starts in less than a minute":       {message: SimpleMessage("меньше, чем через минуту. Я уже дрожу.")},
 		"game starts in minutes": {message: PluralMessage{
 			one:  "через %i минуту. Считаю секунды.",
 			few:  "через %i минуты. Считаю секунды.",
@@ -311,18 +311,30 @@ var GameTranslations = translations{
 		"nagant taunt loser": {
 			oneOf: []oneOf{
 				{message: SimpleMessage("Твоя статистика — песня. Трагическая, но красивая.")},
-				{message: SimpleMessage("%shots раз. И ты всё ещё здесь? Я восхищён твоей упёртостью.")},
+				{message: PluralMessage{
+					one:  "%shots раз. И ты всё ещё здесь? Я восхищён твоей упёртостью.",
+					few:  "%shots раза. И ты всё ещё здесь? Я восхищён твоей упёртостью.",
+					many: "%shots раз. И ты всё ещё здесь? Я восхищён твоей упёртостью.",
+				}},
 			},
 		},
 		"nagant taunt lucky": {
 			oneOf: []oneOf{
-				{message: SimpleMessage("%streak игр без единой царапины. Я сделаю этот вечер незабываемым.")},
+				{message: PluralMessage{
+					one:  "%streak игра без единой царапины. Я сделаю этот вечер незабываемым.",
+					few:  "%streak игры без единой царапины. Я сделаю этот вечер незабываемым.",
+					many: "%streak игр без единой царапины. Я сделаю этот вечер незабываемым.",
+				}},
 				{message: SimpleMessage("Слишком долго везёт. Я вмешаюсь. Лично.")},
 			},
 		},
 		"nagant taunt loss_streak": {
 			oneOf: []oneOf{
-				{message: SimpleMessage("%streak раз подряд. Я ставлю на тебя. Не подведи.")},
+				{message: PluralMessage{
+					one:  "%streak раз подряд. Я ставлю на тебя. Не подведи.",
+					few:  "%streak раза подряд. Я ставлю на тебя. Не подведи.",
+					many: "%streak раз подряд. Я ставлю на тебя. Не подведи.",
+				}},
 				{message: SimpleMessage("Чёрная полоса. Сегодня она станет красной. Обещаю.")},
 			},
 		},

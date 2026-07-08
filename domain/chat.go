@@ -19,11 +19,11 @@ const (
 )
 
 type Chat struct {
-	ID              int64 `gorm:"primary_key;auto_increment:false"`
-	Title           sql.NullString
-	Username        sql.NullString
-	LastHungerPostAt sql.NullTime
-	HungerStage     int `gorm:"not null;default:0"`
+	ID          int64 `gorm:"primary_key;auto_increment:false"`
+	Title       sql.NullString
+	Username    sql.NullString
+	HungerPostedAt sql.NullTime
+	HungerStage int `gorm:"not null;default:0"`
 	Settings struct {
 		Mode            GameMode `gorm:"not null;default:'dynamic'"`
 		RequiredPlayers int      `gorm:"not null;default:6"`
@@ -57,6 +57,6 @@ func (c *Chat) IsHungerActive() bool {
 }
 
 func (c *Chat) ResetHunger() {
-	c.LastHungerPostAt = sql.NullTime{}
+	c.HungerPostedAt = sql.NullTime{}
 	c.HungerStage = HungerStageNone
 }

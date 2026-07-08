@@ -71,7 +71,7 @@ func (repo GameRepository) Store(game *domain.Game) error {
 }
 
 func (repo GameRepository) Update(game *domain.Game) error {
-	return repo.orm.Updates(game).Error
+	return repo.orm.Select("Status", "FomoNotified", "PlayedAt", "BulletType", "ProofURL", "StartDeadline", "PlayersCount").Updates(game).Error
 }
 
 func (repo GameRepository) HasActiveInChat(chatID int64) bool {

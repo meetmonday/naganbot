@@ -133,31 +133,32 @@ func (h *JoinHandler) selectTaunt(profile PlayerProfile) string {
 	case profile.LossStreak >= 3:
 		return h.trans.Get("nagant taunt loss_streak", translator.Config{
 			Args: map[string]string{
-				"%user":   "",
 				"%streak": strconv.Itoa(profile.LossStreak),
 			},
+			Count: profile.LossStreak,
 		})
 	case profile.GamesPlayed >= 20:
 		return h.trans.Get("nagant taunt veteran", translator.Config{})
 	case profile.TimesShot > 0 && profile.TimesShot == profile.GamesPlayed:
 		return h.trans.Get("nagant taunt loser", translator.Config{
 			Args: map[string]string{
-				"%user":  "",
 				"%shots": strconv.Itoa(profile.TimesShot),
 			},
+			Count: profile.TimesShot,
 		})
 	case profile.ParticipationStreak >= 5 && profile.LossStreak == 0:
 		return h.trans.Get("nagant taunt lucky", translator.Config{
 			Args: map[string]string{
 				"%streak": strconv.Itoa(profile.ParticipationStreak),
 			},
+			Count: profile.ParticipationStreak,
 		})
 	case profile.TimesShot > 0 && profile.GamesPlayed > 0 && profile.TimesShot*100/profile.GamesPlayed >= 70:
 		return h.trans.Get("nagant taunt loser", translator.Config{
 			Args: map[string]string{
-				"%user":  "",
 				"%shots": strconv.Itoa(profile.TimesShot),
 			},
+			Count: profile.TimesShot,
 		})
 	default:
 		return ""

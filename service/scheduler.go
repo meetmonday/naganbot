@@ -272,29 +272,29 @@ func (s *GameScheduler) processHunger(ctx context.Context, now time.Time, active
 			continue
 		}
 
-		if !chat.LastHungerPostAt.Valid {
+		if !chat.HungerPostedAt.Valid {
 			message := s.trans.Get("nagant hunger stage1", translator.Config{})
 			s.bot.SendMessage(chatID, message)
 
-			chat.LastHungerPostAt = getSQLNullTime(now)
+			chat.HungerPostedAt = getSQLNullTime(now)
 			chat.HungerStage = domain.HungerStageAwakening
 			if err := s.chatRepo.Update(&chat); err != nil {
 				log.Printf("scheduler: failed to update chat hunger stage: %v", err)
 			}
-		} else if chat.HungerStage == domain.HungerStageAwakening && now.Sub(chat.LastHungerPostAt.Time) > 4*time.Hour {
+		} else if chat.HungerStage == domain.HungerStageAwakening && now.Sub(chat.HungerPostedAt.Time) > 4*time.Hour {
 			message := s.trans.Get("nagant hunger stage2", translator.Config{})
 			s.bot.SendMessage(chatID, message)
 
-			chat.LastHungerPostAt = getSQLNullTime(now)
+			chat.HungerPostedAt = getSQLNullTime(now)
 			chat.HungerStage = domain.HungerStageImpatience
 			if err := s.chatRepo.Update(&chat); err != nil {
 				log.Printf("scheduler: failed to update chat hunger stage: %v", err)
 			}
-		} else if chat.HungerStage == domain.HungerStageImpatience && now.Sub(chat.LastHungerPostAt.Time) > 4*time.Hour {
+		} else if chat.HungerStage == domain.HungerStageImpatience && now.Sub(chat.HungerPostedAt.Time) > 4*time.Hour {
 			message := s.trans.Get("nagant hunger stage3", translator.Config{})
 			s.bot.SendMessage(chatID, message)
 
-			chat.LastHungerPostAt = getSQLNullTime(now)
+			chat.HungerPostedAt = getSQLNullTime(now)
 			chat.HungerStage = domain.HungerStageRage
 			if err := s.chatRepo.Update(&chat); err != nil {
 				log.Printf("scheduler: failed to update chat hunger stage: %v", err)
