@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
@@ -60,6 +64,21 @@ func main() {
 		orm.Migrator().AlterColumn(&domain.Game{}, "PlayersCount")
 	}
 
+	if orm.Migrator().HasColumn(&domain.Game{}, "mode") {
+		orm.Exec("UPDATE games SET mode = 'dynamic' WHERE mode IS NULL OR mode = ''")
+		orm.Migrator().AlterColumn(&domain.Game{}, "Mode")
+	}
+
+	if orm.Migrator().HasColumn(&domain.Game{}, "status") {
+		orm.Exec("UPDATE games SET status = 'lobby' WHERE status IS NULL OR status = ''")
+		orm.Migrator().AlterColumn(&domain.Game{}, "Status")
+	}
+
+	if orm.Migrator().HasColumn(&domain.Chat{}, "settings_mode") {
+		orm.Exec("UPDATE chats SET settings_mode = 'dynamic' WHERE settings_mode IS NULL OR settings_mode = ''")
+		orm.Migrator().AlterColumn(&domain.Chat{}, "Settings.Mode")
+	}
+
 	trans := sc.Get(container.Translator).(*translator.Translator)
 	chatRepository := sc.Get(container.RepositoryChat).(domain.ChatRepository)
 	userRepository := sc.Get(container.RepositoryUser).(domain.UserRepository)
@@ -67,8 +86,16 @@ func main() {
 	botApi := sc.Get(container.BotTelegram).(*tgbotapi.BotAPI)
 	cmdRegistry := sc.Get(container.CommandRegistry).(*command.Registry)
 	clbRegistry := sc.Get(container.CallbackRegistry).(*callback.Registry)
+	scheduler := sc.Get(container.Scheduler).(*service.GameScheduler)
 
 	log.Printf("authorized on account %s", botApi.Self.String())
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		scheduler.Start(ctx)
+	}()
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60

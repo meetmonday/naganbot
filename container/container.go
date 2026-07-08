@@ -37,13 +37,16 @@ const (
 	Nagan                   = "nagan"
 	ORM                     = "orm"
 	RepositoryChat          = "repository_chat"
+	Scheduler               = "scheduler"
 	RepositoryGame          = "repository_game"
 	RepositoryGunslinger    = "repository_gunslinger"
 	RepositoryUser          = "repository_user"
+	ServiceGameAnnouncer    = "service_game_announcer"
 	ServiceLocker           = "service_locker"
 	Translator              = "translator"
 	UseCaseCreateGame       = "use_case_create_game"
 	UseCaseJoinGame         = "use_case_join_game"
+	UseCaseCalculateGameDeadline = "use_case_calculate_game_deadline"
 	UseCasePlayGame         = "use_case_play_game"
 )
 
@@ -137,6 +140,9 @@ func buildHandlerCommand(builder *di.Builder) {
 		Build: func(ctn di.Container) (interface{}, error) {
 			return command.NewForceHandler(
 				ctn.Get(Bot).(*service.Bot),
+				ctn.Get(Translator).(*translator.Translator),
+				ctn.Get(RepositoryGame).(domain.GameRepository),
+				ctn.Get(UseCasePlayGame).(*usecase.PlayGameUseCase),
 			), nil
 		},
 	})
@@ -146,8 +152,10 @@ func buildHandlerCommand(builder *di.Builder) {
 		Build: func(ctn di.Container) (interface{}, error) {
 			return command.NewJoinHandler(
 				ctn.Get(Bot).(*service.Bot),
+				ctn.Get(ServiceGameAnnouncer).(*service.GameAnnouncer),
 				ctn.Get(UseCaseCreateGame).(*usecase.CreateGameUseCase),
 				ctn.Get(UseCaseJoinGame).(*usecase.JoinGameUseCase),
+				ctn.Get(UseCaseCalculateGameDeadline).(*usecase.CalculateGameDeadlineUseCase),
 				ctn.Get(UseCasePlayGame).(*usecase.PlayGameUseCase),
 				ctn.Get(Translator).(*translator.Translator),
 			), nil
@@ -276,6 +284,16 @@ func buildService(builder *di.Builder) {
 	})
 
 	builder.Add(di.Def{
+		Name: ServiceGameAnnouncer,
+		Build: func(ctn di.Container) (interface{}, error) {
+			return service.NewGameAnnouncer(
+				ctn.Get(Bot).(*service.Bot),
+				ctn.Get(Translator).(*translator.Translator),
+			), nil
+		},
+	})
+
+	builder.Add(di.Def{
 		Name: BulletFactory,
 		Build: func(ctn di.Container) (interface{}, error) {
 			return service.NewBulletFactory(
@@ -305,6 +323,21 @@ func buildService(builder *di.Builder) {
 			return service.NewNagan(
 				ctn.Get(BulletFactory).(*service.BulletFactory),
 				ctn.Get(DrandClient).(*drand.Client),
+			), nil
+		},
+	})
+
+	builder.Add(di.Def{
+		Name: Scheduler,
+		Build: func(ctn di.Container) (interface{}, error) {
+			return service.NewGameScheduler(
+				ctn.Get(RepositoryGame).(domain.GameRepository),
+				ctn.Get(RepositoryGunslinger).(domain.GunslingerRepository),
+				ctn.Get(RepositoryUser).(domain.UserRepository),
+				ctn.Get(UseCasePlayGame).(*usecase.PlayGameUseCase),
+				ctn.Get(ServiceGameAnnouncer).(*service.GameAnnouncer),
+				ctn.Get(Bot).(*service.Bot),
+				ctn.Get(Translator).(*translator.Translator),
 			), nil
 		},
 	})
@@ -342,6 +375,16 @@ func buildUseCase(builder *di.Builder) {
 				ctn.Get(RepositoryGame).(domain.GameRepository),
 				ctn.Get(RepositoryGunslinger).(domain.GunslingerRepository),
 				ctn.Get(RepositoryUser).(domain.UserRepository),
+			), nil
+		},
+	})
+
+	builder.Add(di.Def{
+		Name: UseCaseCalculateGameDeadline,
+		Build: func(ctn di.Container) (interface{}, error) {
+			return usecase.NewCalculateGameDeadlineUseCase(
+				ctn.Get(RepositoryGame).(domain.GameRepository),
+				ctn.Get(RepositoryGunslinger).(domain.GunslingerRepository),
 			), nil
 		},
 	})

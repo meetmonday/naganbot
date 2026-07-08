@@ -49,6 +49,8 @@ var GameTranslations = translations{
 				{message: SimpleMessage("Добро пожаловать. Назад только вперёд ногами.")},
 			},
 		},
+		"joining the game details waiting": {message: SimpleMessage("\nИгроков: %count/%max, минимум %min.")},
+		"joining the game details deadline": {message: SimpleMessage("\nИгроков: %count/%max, старт %deadline.")},
 		"play the game": {
 			oneOf: []oneOf{
 				{
@@ -203,7 +205,9 @@ var GameTranslations = translations{
 			},
 		},
 		"active game not found":                  {message: SimpleMessage("Ещё никто не начал игру")},
-		"user game statistics":                   {message: SimpleMessage("Вы участвовали в %games игре(-ах) и проиграли %shots раз(а)")},
+		"not enough players":                     {message: SimpleMessage("В игре нет ни одного игрока, некого стрелять")},
+		"user game statistics":                   {message: SimpleMessage("Вы участвовали в %games игре(-ах) и проиграли %shots раз(а)\nСтрик участия: %ps_games\nСтрик проигрышей: %ls_games")},
+"fomo reminder":                          {message: SimpleMessage("⚠️ %players, присоединяйтесь! /gnjoin. До начала игры осталось меньше половины времени.")},
 		"available settings below":               {message: SimpleMessage("Персонализируйте игру используя перечисленные ниже опции")},
 		"settings can be changed only by admins": {message: SimpleMessage("Изменять настройки игры могут только администраторы чата")},
 		"4 shot revolver":                        {message: SimpleMessage("Colt Cloverleaf - 4 игрока")},
@@ -218,6 +222,16 @@ var GameTranslations = translations{
 			many: "Теперь в игре могут участвовать %i игроков",
 		}},
 		"settings will be applied for next games": {message: SimpleMessage("Изменения вступят в силу со следующего раунда")},
+		"dynamic shot revolver":                   {message: SimpleMessage("Динамический (3-10)")},
+		"dynamic mode enabled":                    {message: SimpleMessage("Режим изменён на динамический")},
+		"dynamic game deadline":                   {message: SimpleMessage("Собрано %count стрелков. Игра начнётся %deadline или раньше, если наберётся больше")},
+		"game starts at midnight":                 {message: SimpleMessage("в полночь")},
+		"game starts in less than a minute":       {message: SimpleMessage("менее чем через минуту")},
+		"game starts in minutes": {message: PluralMessage{
+			one:  "через %i минуту",
+			few:  "через %i минуты",
+			many: "через %i минут",
+		}},
 		"proof link":      {message: SimpleMessage("<a href=\"%url\">🔐 Источник случайности</a>")},
 		"game log header": {message: SimpleMessage("Последние %number игр:")},
 		"game log item":   {message: SimpleMessage("%date - %username")},

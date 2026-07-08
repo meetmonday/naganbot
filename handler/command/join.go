@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/taranovegor/naganbot/domain"
 	"github.com/taranovegor/naganbot/service"
 	"github.com/taranovegor/naganbot/translator"
 	"github.com/taranovegor/naganbot/usecase"
@@ -14,26 +16,32 @@ import (
 
 type JoinHandler struct {
 	Handler
-	bot          *service.Bot
-	createGameUC *usecase.CreateGameUseCase
-	joinGameUC   *usecase.JoinGameUseCase
-	playGameUC   *usecase.PlayGameUseCase
-	trans        *translator.Translator
+	bot                 *service.Bot
+	announcer           *service.GameAnnouncer
+	createGameUC        *usecase.CreateGameUseCase
+	joinGameUC          *usecase.JoinGameUseCase
+	calculateDeadlineUC *usecase.CalculateGameDeadlineUseCase
+	playGameUC          *usecase.PlayGameUseCase
+	trans               *translator.Translator
 }
 
 func NewJoinHandler(
 	bot *service.Bot,
+	announcer *service.GameAnnouncer,
 	createGameUC *usecase.CreateGameUseCase,
 	joinGameUC *usecase.JoinGameUseCase,
+	calculateDeadlineUC *usecase.CalculateGameDeadlineUseCase,
 	playGameUC *usecase.PlayGameUseCase,
 	trans *translator.Translator,
 ) Handler {
 	return &JoinHandler{
-		bot:          bot,
-		createGameUC: createGameUC,
-		joinGameUC:   joinGameUC,
-		playGameUC:   playGameUC,
-		trans:        trans,
+		bot:                 bot,
+		announcer:           announcer,
+		createGameUC:        createGameUC,
+		joinGameUC:          joinGameUC,
+		calculateDeadlineUC: calculateDeadlineUC,
+		playGameUC:          playGameUC,
+		trans:               trans,
 	}
 }
 
@@ -45,9 +53,6 @@ func (h *JoinHandler) Execute(msg *tgbotapi.Message) {
 	chatID, userID := msg.Chat.ID, msg.From.ID
 	game, err := h.createGameUC.Execute(chatID, userID)
 	if err != nil {
-		if errors.Is(err, usecase.ErrGameCooldown) {
-			h.bot.SendMessage(chatID, h.trans.Get("wait for game timeout", translator.Config{}))
-		}
 		return
 	}
 
@@ -63,6 +68,22 @@ func (h *JoinHandler) Execute(msg *tgbotapi.Message) {
 		h.bot.SendMessage(chatID, h.trans.Get("game creation", translator.Config{}))
 	}
 
+	game, count, err := h.calculateDeadlineUC.Execute(game.ID, time.Now())
+	if err != nil {
+		fmt.Println(err)
+		h.bot.SendMessage(chatID, h.trans.Get("something went wrong", translator.Config{}))
+		return
+	}
+
+	if game.Mode == domain.GameModeDynamic {
+		h.handleDynamicJoin(chatID, game, count)
+		return
+	}
+
+	h.handleClassicJoin(chatID, userID, game)
+}
+
+func (h *JoinHandler) handleClassicJoin(chatID int64, userID int64, game *domain.Game) {
 	hitReport, err := h.playGameUC.Execute(context.TODO(), game.ID)
 	if err != nil {
 		fmt.Println(err)
@@ -74,27 +95,67 @@ func (h *JoinHandler) Execute(msg *tgbotapi.Message) {
 		return
 	}
 
-	for _, message := range h.trans.GetMany("play the game", translator.Config{}) {
-		h.bot.SendMessage(chatID, message)
-		time.Sleep(time.Second)
-	}
+	h.announcer.AnnounceGameResult(chatID, hitReport)
+}
 
-	isAtomic := hitReport.BulletType == service.BulletAtomicType
-
-	if isAtomic {
-		h.bot.SendMessage(chatID, h.trans.Get("killed by atomic bullet", translator.Config{}))
-	}
-
-	for _, victim := range hitReport.Victims {
-		if !isAtomic {
-			h.bot.SendMessage(chatID, h.trans.Get("gunslinger killed", translator.Config{
-				Args: map[string]string{"%gunslinger": victim.Player.Mention()},
-			}))
+func (h *JoinHandler) handleDynamicJoin(chatID int64, game *domain.Game, count int) {
+	if game.ShouldStartNow(count) {
+		hitReport, err := h.playGameUC.Execute(context.TODO(), game.ID)
+		if err != nil {
+			fmt.Println(err)
+			if !errors.Is(err, usecase.ErrNotEnoughPlayers) {
+				h.bot.SendMessage(chatID, h.trans.Get("something went wrong", translator.Config{}))
+			}
+			return
 		}
 
-		err = h.bot.Kick(chatID, victim.PlayerID)
-		if err != nil && !isAtomic {
-			h.bot.SendMessage(chatID, h.trans.Get("player is not kicked", translator.Config{}))
-		}
+		h.announcer.AnnounceGameResult(chatID, hitReport)
+		return
 	}
+
+	var deadline string
+	if count >= domain.DynamicMinPlayers {
+		deadline = h.formatDeadline(game.StartDeadline.Time)
+	}
+
+	h.bot.SendMessage(chatID, h.joinMessage(chatID, count, domain.DynamicMaxPlayers, domain.DynamicMinPlayers, deadline))
+}
+
+func (h *JoinHandler) joinMessage(chatID int64, count int, max int, min int, deadline string) string {
+	base := h.trans.Get("joining the game", translator.Config{})
+
+	var details string
+	if deadline == "" {
+		details = h.trans.Get("joining the game details waiting", translator.Config{
+			Args: map[string]string{
+				"%count": strconv.Itoa(count),
+				"%max":   strconv.Itoa(max),
+				"%min":   strconv.Itoa(min),
+			},
+		})
+	} else {
+		details = h.trans.Get("joining the game details deadline", translator.Config{
+			Args: map[string]string{
+				"%count":    strconv.Itoa(count),
+				"%max":      strconv.Itoa(max),
+				"%deadline": deadline,
+			},
+		})
+	}
+
+	return base + details
+}
+
+func (h *JoinHandler) formatDeadline(deadline time.Time) string {
+	midnight := domain.NextMidnight(time.Now())
+	if deadline.Equal(midnight) || (deadline.After(midnight.Add(-time.Minute)) && deadline.Before(midnight.Add(time.Minute))) {
+		return h.trans.Get("game starts at midnight", translator.Config{})
+	}
+
+	minutes := int(time.Until(deadline).Minutes())
+	if minutes < 2 {
+		return h.trans.Get("game starts in less than a minute", translator.Config{})
+	}
+
+	return h.trans.Get("game starts in minutes", translator.Config{Count: minutes})
 }

@@ -2,12 +2,20 @@ package domain
 
 import "database/sql"
 
+type GameMode string
+
+const (
+	GameModeClassic GameMode = "classic"
+	GameModeDynamic GameMode = "dynamic"
+)
+
 type Chat struct {
 	ID       int64 `gorm:"primary_key;auto_increment:false"`
 	Title    sql.NullString
 	Username sql.NullString
 	Settings struct {
-		RequiredPlayers int `gorm:"not null;default:6"`
+		Mode            GameMode `gorm:"not null;default:'dynamic'"`
+		RequiredPlayers int      `gorm:"not null;default:6"`
 	} `gorm:"embedded"`
 }
 

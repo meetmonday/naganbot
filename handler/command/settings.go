@@ -2,6 +2,7 @@ package command
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/taranovegor/naganbot/config"
 	"github.com/taranovegor/naganbot/domain"
 	"github.com/taranovegor/naganbot/handler/callback"
 	"github.com/taranovegor/naganbot/service"
@@ -31,6 +32,11 @@ func (hdlr *settingsHandler) Name() string {
 }
 
 func (hdlr *settingsHandler) Execute(msg *tgbotapi.Message) {
+	allowedUsername := config.GetEnv(config.ForceUsername)
+	if allowedUsername != "" && msg.From.UserName != allowedUsername {
+		return
+	}
+
 	chat, err := hdlr.chatRepo.Get(msg.Chat.ID)
 	if err != nil {
 		hdlr.bot.SendMessage(msg.Chat.ID, hdlr.trans.Get("something went wrong", translator.Config{}))
@@ -40,6 +46,6 @@ func (hdlr *settingsHandler) Execute(msg *tgbotapi.Message) {
 	settings := chat.Settings
 
 	message := hdlr.trans.Get("available settings below", translator.Config{})
-	keyboard := callback.RevolverKeyboard(settings.RequiredPlayers, hdlr.trans)
+	keyboard := callback.RevolverKeyboard(settings.Mode, settings.RequiredPlayers, hdlr.trans)
 	hdlr.bot.SendInlineKeyboard(msg.Chat.ID, message, keyboard)
 }

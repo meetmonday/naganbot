@@ -1,17 +1,11 @@
 package usecase
 
 import (
-	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/taranovegor/naganbot/domain"
 	"github.com/taranovegor/naganbot/service"
-	"gorm.io/gorm"
 	"time"
-)
-
-var (
-	ErrGameCooldown = errors.New("game cooldown")
 )
 
 type CreateGameUseCase struct {
@@ -42,13 +36,9 @@ func (uc *CreateGameUseCase) Execute(chatID int64, ownerID int64) (*domain.Game,
 	}
 	defer locker.Unlock()
 
-	if uc.gameRepo.HasActiveOrCreatedTodayInChat(chatID) {
+	if uc.gameRepo.HasActiveInChat(chatID) {
 		game, err := uc.gameRepo.GetActiveForChat(chatID)
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, ErrGameCooldown
-			}
-
 			return nil, err
 		}
 
@@ -72,6 +62,8 @@ func (uc *CreateGameUseCase) Execute(chatID int64, ownerID int64) (*domain.Game,
 		Owner:        owner,
 		CreatedAt:    time.Now(),
 		PlayersCount: chat.Settings.RequiredPlayers,
+		Mode:         chat.Settings.Mode,
+		Status:       domain.GameStatusLobby,
 	}
 
 	if err := uc.gameRepo.Store(game); err != nil {

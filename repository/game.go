@@ -4,7 +4,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/taranovegor/naganbot/domain"
 	"gorm.io/gorm"
-	"time"
 )
 
 type GameRepository struct {
@@ -65,14 +64,31 @@ func (repo GameRepository) Update(game *domain.Game) error {
 	return repo.orm.Updates(game).Error
 }
 
-func (repo GameRepository) HasActiveOrCreatedTodayInChat(chatID int64) bool {
+func (repo GameRepository) HasActiveInChat(chatID int64) bool {
 	var counter int64
 	repo.orm.Model(&domain.Game{}).
 		Where("chat_id = ?", chatID).
-		Where("played_at IS NULL OR DATE(created_at) = DATE(?)", time.Now()).
+		Where("played_at IS NULL").
 		Count(&counter)
 
 	return counter > 0
+}
+
+func (repo GameRepository) GetActiveDynamicGames() ([]*domain.Game, error) {
+	var games []*domain.Game
+	err := repo.orm.
+		Preload("Gunslingers", func(db *gorm.DB) *gorm.DB {
+			return db.Order("joined_at ASC")
+		}).
+		Preload("Gunslingers.Player").
+		Preload("Owner").
+		Preload("Chat").
+		Where("played_at IS NULL").
+		Where("mode = ?", domain.GameModeDynamic).
+		Find(&games).
+		Error
+
+	return games, err
 }
 
 func (repo GameRepository) getQueryByChat(chatID int64) *gorm.DB {

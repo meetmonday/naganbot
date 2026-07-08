@@ -15,6 +15,11 @@ type Gunslinger struct {
 	ShotHimself bool
 }
 
+type PlayerStreak struct {
+	PlayerID            int64
+	ParticipationStreak int
+}
+
 type GunslingerTopShotPlayer struct {
 	PlayerId int64
 	Times    int
@@ -29,6 +34,8 @@ type GunslingerRepository interface {
 	GetTopShotPlayersByYearInChat(chatID int64, year int) ([]GunslingerTopShotPlayer, error)
 	CountNumberOfPlayerGamesInChat(userID int64, chatID int64) int64
 	CountNumberOfSelfShotsInChat(userID int64, chatID int64) int64
+	GetPlayerStreaks(userID int64, chatID int64) (participationStreak int, lossStreak int)
+	GetPlayersWithStreakInChat(chatID int64, excludeGameID uuid.UUID) ([]PlayerStreak, error)
 }
 
 func NewGunslinger(gameID uuid.UUID, playerID int64) *Gunslinger {
