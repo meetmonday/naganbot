@@ -64,10 +64,6 @@ func (h *JoinHandler) Execute(msg *tgbotapi.Message) {
 		return
 	}
 
-	if game.Owner.ID == userID {
-		h.bot.SendMessage(chatID, h.trans.Get("game creation", translator.Config{}))
-	}
-
 	game, count, err := h.calculateDeadlineUC.Execute(game.ID, time.Now())
 	if err != nil {
 		fmt.Println(err)
