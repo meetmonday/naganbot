@@ -155,10 +155,21 @@ func (s *GameScheduler) processFomoGames(ctx context.Context, games []*domain.Ga
 		if !game.StartDeadline.Valid {
 			continue
 		}
+		if !game.StartDeadline.Time.After(now) {
+			continue
+		}
 
-		totalDuration := game.StartDeadline.Time.Sub(game.CreatedAt)
-		halftime := game.CreatedAt.Add(totalDuration / 2)
+		count := len(game.Gunslingers)
+		if count < domain.DynamicMinPlayers {
+			continue
+		}
 
+		duration := domain.DynamicDeadlineDuration(count)
+		if duration == 0 {
+			continue
+		}
+
+		halftime := game.StartDeadline.Time.Add(-duration / 2)
 		if now.Before(halftime) {
 			continue
 		}
