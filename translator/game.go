@@ -161,6 +161,16 @@ var GameTranslations = translations{
 			many: "%i. %user - %times раз",
 		}},
 		"available only in chat": {message: SimpleMessage("Русская рулетка игра не для одного")},
+		"player already in game invite": {
+			oneOf: []oneOf{
+				{message: SimpleMessage("\nМожет %player хочет пострелять?")},
+				{message: SimpleMessage("\nА как насчёт %player?")},
+				{message: SimpleMessage("\n%player, твоя очередь показать класс!")},
+				{message: SimpleMessage("\nЭй, %player, присоединяйся!")},
+				{message: SimpleMessage("\nСкучно одним. %player, давай с нами!")},
+				{message: SimpleMessage("\n%player, рискнёшь?")},
+			},
+		},
 		"player already in game": {
 			oneOf: []oneOf{
 				{message: SimpleMessage("Ты уже в игре. Смерть тебя уже запомнила")},

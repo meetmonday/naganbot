@@ -210,6 +210,18 @@ func (repo GunslingerRepository) GetPlayersWithStreakInChat(chatID int64, exclud
 	return result, nil
 }
 
+func (repo GunslingerRepository) GetDistinctPlayerIDsInChat(chatID int64) ([]int64, error) {
+	var ids []int64
+	err := repo.orm.Table("gunslingers").
+		Joins("INNER JOIN games ON gunslingers.game_id = games.id").
+		Where("games.chat_id = ?", chatID).
+		Where("games.played_at IS NOT NULL").
+		Distinct("gunslingers.player_id").
+		Find(&ids).Error
+
+	return ids, err
+}
+
 func (repo GunslingerRepository) getQueryTopShotPlayersInChat(chatID int64) *gorm.DB {
 	return repo.orm.Table("gunslingers").
 		Select("player_id, COUNT(chat_id) as times").

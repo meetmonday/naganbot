@@ -36,6 +36,7 @@ type GunslingerRepository interface {
 	CountNumberOfSelfShotsInChat(userID int64, chatID int64) int64
 	GetPlayerStreaks(userID int64, chatID int64) (participationStreak int, lossStreak int)
 	GetPlayersWithStreakInChat(chatID int64, excludeGameID uuid.UUID) ([]PlayerStreak, error)
+	GetDistinctPlayerIDsInChat(chatID int64) ([]int64, error)
 }
 
 func NewGunslinger(gameID uuid.UUID, playerID int64) *Gunslinger {

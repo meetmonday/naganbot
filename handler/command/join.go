@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"strconv"
+	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/google/uuid"
 	"github.com/taranovegor/naganbot/domain"
 	"github.com/taranovegor/naganbot/service"
 	"github.com/taranovegor/naganbot/translator"
@@ -22,7 +25,11 @@ type JoinHandler struct {
 	joinGameUC          *usecase.JoinGameUseCase
 	calculateDeadlineUC *usecase.CalculateGameDeadlineUseCase
 	playGameUC          *usecase.PlayGameUseCase
+	gunslingerRepo      domain.GunslingerRepository
+	userRepo            domain.UserRepository
 	trans               *translator.Translator
+	invited             map[uuid.UUID]map[int64]bool
+	mu                  sync.Mutex
 }
 
 func NewJoinHandler(
@@ -32,6 +39,8 @@ func NewJoinHandler(
 	joinGameUC *usecase.JoinGameUseCase,
 	calculateDeadlineUC *usecase.CalculateGameDeadlineUseCase,
 	playGameUC *usecase.PlayGameUseCase,
+	gunslingerRepo domain.GunslingerRepository,
+	userRepo domain.UserRepository,
 	trans *translator.Translator,
 ) Handler {
 	return &JoinHandler{
@@ -41,7 +50,10 @@ func NewJoinHandler(
 		joinGameUC:          joinGameUC,
 		calculateDeadlineUC: calculateDeadlineUC,
 		playGameUC:          playGameUC,
+		gunslingerRepo:      gunslingerRepo,
+		userRepo:            userRepo,
 		trans:               trans,
+		invited:             make(map[uuid.UUID]map[int64]bool),
 	}
 }
 
@@ -59,7 +71,13 @@ func (h *JoinHandler) Execute(msg *tgbotapi.Message) {
 	_, err = h.joinGameUC.Execute(game.ID, msg.From.ID)
 	if err != nil {
 		if errors.Is(err, usecase.ErrPlayerAlreadyInGame) {
-			h.bot.SendMessage(chatID, h.trans.Get("player already in game", translator.Config{}))
+			message := h.trans.Get("player already in game", translator.Config{})
+
+			if rand.Intn(6) == 0 {
+				message += h.buildInviteSuffix(chatID, game)
+			}
+
+			h.bot.SendMessage(chatID, message)
 		}
 		return
 	}
@@ -115,6 +133,52 @@ func (h *JoinHandler) handleDynamicJoin(chatID int64, game *domain.Game, count i
 	}
 
 	h.bot.SendMessage(chatID, h.joinMessage(chatID, count, domain.DynamicMaxPlayers, domain.DynamicMinPlayers, deadline))
+}
+
+func (h *JoinHandler) buildInviteSuffix(chatID int64, game *domain.Game) string {
+	allPlayerIDs, err := h.gunslingerRepo.GetDistinctPlayerIDsInChat(chatID)
+	if err != nil || len(allPlayerIDs) == 0 {
+		return ""
+	}
+
+	currentPlayers := make(map[int64]bool, len(game.Gunslingers))
+	for _, gs := range game.Gunslingers {
+		currentPlayers[gs.PlayerID] = true
+	}
+
+	h.mu.Lock()
+	alreadyInvited := h.invited[game.ID]
+	if alreadyInvited == nil {
+		alreadyInvited = make(map[int64]bool)
+		h.invited[game.ID] = alreadyInvited
+	}
+	h.mu.Unlock()
+
+	var candidates []int64
+	for _, pid := range allPlayerIDs {
+		if !currentPlayers[pid] && !alreadyInvited[pid] {
+			candidates = append(candidates, pid)
+		}
+	}
+
+	if len(candidates) == 0 {
+		return ""
+	}
+
+	targetID := candidates[rand.Intn(len(candidates))]
+
+	h.mu.Lock()
+	alreadyInvited[targetID] = true
+	h.mu.Unlock()
+
+	user, err := h.userRepo.Get(targetID)
+	if err != nil {
+		return ""
+	}
+
+	return h.trans.Get("player already in game invite", translator.Config{
+		Args: map[string]string{"%player": user.Mention()},
+	})
 }
 
 func (h *JoinHandler) joinMessage(chatID int64, count int, max int, min int, deadline string) string {

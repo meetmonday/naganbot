@@ -157,6 +157,8 @@ func buildHandlerCommand(builder *di.Builder) {
 				ctn.Get(UseCaseJoinGame).(*usecase.JoinGameUseCase),
 				ctn.Get(UseCaseCalculateGameDeadline).(*usecase.CalculateGameDeadlineUseCase),
 				ctn.Get(UseCasePlayGame).(*usecase.PlayGameUseCase),
+				ctn.Get(RepositoryGunslinger).(domain.GunslingerRepository),
+				ctn.Get(RepositoryUser).(domain.UserRepository),
 				ctn.Get(Translator).(*translator.Translator),
 			), nil
 		},

@@ -96,6 +96,10 @@ func (m *mockGunslingerRepoForScheduler) GetPlayersWithStreakInChat(chatID int64
 	return nil, nil
 }
 
+func (m *mockGunslingerRepoForScheduler) GetDistinctPlayerIDsInChat(chatID int64) ([]int64, error) {
+	return nil, nil
+}
+
 type mockStarter struct {
 	started []uuid.UUID
 }
