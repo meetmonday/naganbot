@@ -73,7 +73,7 @@ func (h *JoinHandler) Execute(msg *tgbotapi.Message) {
 		if errors.Is(err, usecase.ErrPlayerAlreadyInGame) {
 			message := h.trans.Get("player already in game", translator.Config{})
 
-			if rand.Intn(6) == 0 {
+			if rand.Intn(2) == 0 {
 				message += h.buildInviteSuffix(chatID, game)
 			}
 
