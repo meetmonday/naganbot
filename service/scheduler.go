@@ -2,11 +2,14 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"log"
-	"strings"
+	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/taranovegor/naganbot/config"
 	"github.com/taranovegor/naganbot/domain"
 	"github.com/taranovegor/naganbot/translator"
 )
@@ -30,6 +33,7 @@ type GameScheduler struct {
 	gameRepo        domain.GameRepository
 	gunslingerRepo  domain.GunslingerRepository
 	userRepo        domain.UserRepository
+	chatRepo        domain.ChatRepository
 	starter         GameStarter
 	announcer       GameResultAnnouncer
 	bot             *Bot
@@ -41,6 +45,7 @@ func NewGameScheduler(
 	gameRepo domain.GameRepository,
 	gunslingerRepo domain.GunslingerRepository,
 	userRepo domain.UserRepository,
+	chatRepo domain.ChatRepository,
 	starter GameStarter,
 	announcer GameResultAnnouncer,
 	bot *Bot,
@@ -50,6 +55,7 @@ func NewGameScheduler(
 		gameRepo:       gameRepo,
 		gunslingerRepo: gunslingerRepo,
 		userRepo:       userRepo,
+		chatRepo:       chatRepo,
 		starter:        starter,
 		announcer:      announcer,
 		bot:            bot,
@@ -81,6 +87,7 @@ func (s *GameScheduler) process(ctx context.Context, now time.Time) {
 	s.processDueGames(ctx, games, now)
 	s.processMidnightGames(ctx, games, now)
 	s.processFomoGames(ctx, games, now)
+	s.processHunger(ctx, now, games)
 }
 
 func (s *GameScheduler) processDueGames(ctx context.Context, games []*domain.Game, now time.Time) {
@@ -174,42 +181,141 @@ func (s *GameScheduler) processFomoGames(ctx context.Context, games []*domain.Ga
 			continue
 		}
 
-		players, err := s.gunslingerRepo.GetPlayersWithStreakInChat(game.ChatID, game.ID)
-		if err != nil {
-			log.Printf("scheduler: failed to get players with streaks: %v", err)
-			continue
-		}
-
-		if len(players) > 0 {
-			var playerIDs []int64
-			for _, p := range players {
-				playerIDs = append(playerIDs, p.PlayerID)
-			}
-
-			users, err := s.userRepo.GetByIDs(playerIDs)
-			if err != nil {
-				log.Printf("scheduler: failed to get users for fomo: %v", err)
-				continue
-			}
-
-			mentions := make([]string, len(users))
-			for i, u := range users {
-				mentions[i] = u.Mention()
-			}
-
-			message := s.trans.Get("fomo reminder", translator.Config{
-				Args: map[string]string{
-					"%players": strings.Join(mentions, ", "),
-				},
-			})
-
-			s.bot.SendMessage(game.ChatID, message)
-		}
-
+		s.sendHuntMessage(game)
 		game.FomoNotified = true
 		if err := s.gameRepo.Update(game); err != nil {
 			log.Printf("scheduler: failed to update game fomo status: %v", err)
 		}
+	}
+}
+
+func (s *GameScheduler) sendHuntMessage(game *domain.Game) {
+	allPlayerIDs, err := s.gunslingerRepo.GetDistinctPlayerIDsInChat(game.ChatID)
+	if err != nil {
+		log.Printf("scheduler: failed to get distinct player ids for hunt: %v", err)
+		return
+	}
+
+	currentPlayers := make(map[int64]bool, len(game.Gunslingers))
+	for _, gs := range game.Gunslingers {
+		currentPlayers[gs.PlayerID] = true
+	}
+
+	var candidates []int64
+	for _, pid := range allPlayerIDs {
+		if !currentPlayers[pid] {
+			candidates = append(candidates, pid)
+		}
+	}
+
+	if len(candidates) == 0 {
+		return
+	}
+
+	targetID := candidates[rand.Intn(len(candidates))]
+	user, err := s.userRepo.Get(targetID)
+	if err != nil {
+		log.Printf("scheduler: failed to get user for hunt: %v", err)
+		return
+	}
+
+	message := s.trans.Get("nagant hunt", translator.Config{
+		Args: map[string]string{
+			"%missing": user.Mention(),
+		},
+	})
+
+	s.bot.SendMessage(game.ChatID, message)
+}
+
+func (s *GameScheduler) processHunger(ctx context.Context, now time.Time, activeGames []*domain.Game) {
+	activeChatIDs := make(map[int64]bool, len(activeGames))
+	for _, g := range activeGames {
+		activeChatIDs[g.ChatID] = true
+	}
+
+	chatIDs, err := s.chatRepo.GetAllChatIDs()
+	if err != nil {
+		log.Printf("scheduler: failed to get all chat IDs: %v", err)
+		return
+	}
+
+	cooldownStr := config.GetEnv(config.CooldownMinutes)
+	cooldown := config.DefaultCooldown
+	if minutes, err := strconv.Atoi(cooldownStr); err == nil {
+		cooldown = minutes
+	}
+
+	for _, chatID := range chatIDs {
+		if activeChatIDs[chatID] {
+			continue
+		}
+
+		if cooldown > 0 {
+			lastGame, err := s.gameRepo.GetLastPlayedForChat(chatID)
+			if err != nil {
+				continue
+			}
+
+			if !lastGame.PlayedAt.Valid {
+				continue
+			}
+
+			if lastGame.PlayedAt.Time.Add(time.Duration(cooldown) * time.Minute).After(now) {
+				continue
+			}
+		}
+
+		chat, err := s.chatRepo.Get(chatID)
+		if err != nil {
+			log.Printf("scheduler: failed to get chat %d: %v", chatID, err)
+			continue
+		}
+
+		if !chat.LastHungerPostAt.Valid {
+			message := s.trans.Get("nagant hunger stage1", translator.Config{})
+			s.bot.SendMessage(chatID, message)
+
+			chat.LastHungerPostAt = getSQLNullTime(now)
+			chat.HungerStage = domain.HungerStageAwakening
+			if err := s.chatRepo.Update(&chat); err != nil {
+				log.Printf("scheduler: failed to update chat hunger stage: %v", err)
+			}
+		} else if chat.HungerStage == domain.HungerStageAwakening && now.Sub(chat.LastHungerPostAt.Time) > 4*time.Hour {
+			message := s.trans.Get("nagant hunger stage2", translator.Config{})
+			s.bot.SendMessage(chatID, message)
+
+			chat.LastHungerPostAt = getSQLNullTime(now)
+			chat.HungerStage = domain.HungerStageImpatience
+			if err := s.chatRepo.Update(&chat); err != nil {
+				log.Printf("scheduler: failed to update chat hunger stage: %v", err)
+			}
+		} else if chat.HungerStage == domain.HungerStageImpatience && now.Sub(chat.LastHungerPostAt.Time) > 4*time.Hour {
+			message := s.trans.Get("nagant hunger stage3", translator.Config{})
+			s.bot.SendMessage(chatID, message)
+
+			chat.LastHungerPostAt = getSQLNullTime(now)
+			chat.HungerStage = domain.HungerStageRage
+			if err := s.chatRepo.Update(&chat); err != nil {
+				log.Printf("scheduler: failed to update chat hunger stage: %v", err)
+			}
+		}
+	}
+}
+
+func (s *GameScheduler) resetHungerForChat(chatID int64) {
+	chat, err := s.chatRepo.Get(chatID)
+	if err != nil {
+		return
+	}
+
+	if !chat.IsHungerActive() {
+		return
+	}
+
+	chat.ResetHunger()
+	if err := s.chatRepo.Update(&chat); err != nil {
+		log.Printf("scheduler: failed to reset hunger for chat %d: %v", chatID, err)
 	}
 }
 
@@ -226,5 +332,10 @@ func (s *GameScheduler) startGame(ctx context.Context, game *domain.Game) {
 		return
 	}
 
+	s.resetHungerForChat(game.ChatID)
 	s.announcer.AnnounceGameResult(game.ChatID, report)
+}
+
+func getSQLNullTime(t time.Time) sql.NullTime {
+	return sql.NullTime{Time: t, Valid: true}
 }

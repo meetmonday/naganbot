@@ -79,6 +79,14 @@ func main() {
 		orm.Migrator().AlterColumn(&domain.Chat{}, "Settings.Mode")
 	}
 
+	if orm.Migrator().HasColumn(&domain.Chat{}, "last_hunger_post_at") {
+		orm.Migrator().DropColumn(&domain.Chat{}, "last_hunger_post_at")
+	}
+
+	if !orm.Migrator().HasColumn(&domain.Chat{}, "hunger_stage") {
+		orm.Migrator().AddColumn(&domain.Chat{}, "HungerStage")
+	}
+
 	trans := sc.Get(container.Translator).(*translator.Translator)
 	chatRepository := sc.Get(container.RepositoryChat).(domain.ChatRepository)
 	userRepository := sc.Get(container.RepositoryUser).(domain.UserRepository)

@@ -32,6 +32,10 @@ func (m *mockGameRepoForScheduler) GetLatestForChat(chatID int64) (*domain.Game,
 	return nil, nil
 }
 
+func (m *mockGameRepoForScheduler) GetLastPlayedForChat(chatID int64) (*domain.Game, error) {
+	return nil, nil
+}
+
 func (m *mockGameRepoForScheduler) GetActiveForChat(chatID int64) (*domain.Game, error) {
 	return nil, nil
 }
@@ -129,6 +133,28 @@ func (m *mockAnnouncer) AnnounceGameResult(chatID int64, report *HitReport) {
 	m.announced = append(m.announced, chatID)
 }
 
+type mockChatRepoForScheduler struct{}
+
+func (m *mockChatRepoForScheduler) Exists(id int64) bool {
+	return false
+}
+
+func (m *mockChatRepoForScheduler) Get(id int64) (domain.Chat, error) {
+	return domain.Chat{}, nil
+}
+
+func (m *mockChatRepoForScheduler) Store(chat *domain.Chat) error {
+	return nil
+}
+
+func (m *mockChatRepoForScheduler) Update(chat *domain.Chat) error {
+	return nil
+}
+
+func (m *mockChatRepoForScheduler) GetAllChatIDs() ([]int64, error) {
+	return nil, nil
+}
+
 type mockUserRepoForScheduler struct{}
 
 func (m *mockUserRepoForScheduler) Exists(id int64) bool {
@@ -162,6 +188,7 @@ func newScheduler(
 		&mockGameRepoForScheduler{games: games},
 		&mockGunslingerRepoForScheduler{byGame: gunslingers},
 		&mockUserRepoForScheduler{},
+		&mockChatRepoForScheduler{},
 		starter,
 		announcer,
 		nil,

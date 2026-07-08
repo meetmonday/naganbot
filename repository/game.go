@@ -46,6 +46,16 @@ func (repo GameRepository) GetLatestForChat(chatID int64) (*domain.Game, error) 
 	return &game, err
 }
 
+func (repo GameRepository) GetLastPlayedForChat(chatID int64) (*domain.Game, error) {
+	var game domain.Game
+	err := repo.getQueryByChat(chatID).
+		Where("played_at IS NOT NULL").
+		Order("played_at DESC").
+		First(&game).
+		Error
+	return &game, err
+}
+
 func (repo GameRepository) GetActiveForChat(chatID int64) (*domain.Game, error) {
 	var game domain.Game
 	err := repo.getQueryByChat(chatID).

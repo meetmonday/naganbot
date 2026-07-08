@@ -173,6 +173,7 @@ func buildHandlerCommand(builder *di.Builder) {
 				ctn.Get(UseCasePlayGame).(*usecase.PlayGameUseCase),
 				ctn.Get(RepositoryGunslinger).(domain.GunslingerRepository),
 				ctn.Get(RepositoryUser).(domain.UserRepository),
+				ctn.Get(RepositoryChat).(domain.ChatRepository),
 				ctn.Get(Translator).(*translator.Translator),
 			), nil
 		},
@@ -350,6 +351,7 @@ func buildService(builder *di.Builder) {
 				ctn.Get(RepositoryGame).(domain.GameRepository),
 				ctn.Get(RepositoryGunslinger).(domain.GunslingerRepository),
 				ctn.Get(RepositoryUser).(domain.UserRepository),
+				ctn.Get(RepositoryChat).(domain.ChatRepository),
 				ctn.Get(UseCasePlayGame).(*usecase.PlayGameUseCase),
 				ctn.Get(ServiceGameAnnouncer).(*service.GameAnnouncer),
 				ctn.Get(Bot).(*service.Bot),

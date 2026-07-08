@@ -41,3 +41,9 @@ func (repo ChatRepository) Store(chat *domain.Chat) error {
 func (repo ChatRepository) Update(chat *domain.Chat) error {
 	return repo.orm.Updates(chat).Error
 }
+
+func (repo ChatRepository) GetAllChatIDs() ([]int64, error) {
+	var ids []int64
+	err := repo.orm.Model(&domain.Chat{}).Pluck("id", &ids).Error
+	return ids, err
+}

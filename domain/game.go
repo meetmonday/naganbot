@@ -37,6 +37,7 @@ type GameRepository interface {
 	GetByID(uuid.UUID) (*Game, error)
 	GetLatestGamesInChat(int64, int) ([]Game, error)
 	GetLatestForChat(int64) (*Game, error)
+	GetLastPlayedForChat(int64) (*Game, error)
 	GetActiveForChat(int64) (*Game, error)
 	Store(*Game) error
 	Update(*Game) error
