@@ -3,7 +3,7 @@ package domain
 import "testing"
 
 func TestGunslinger_MarkAsShotHimself_InNotPlayedGame(t *testing.T) {
-	game := NewGame(0, 0, 6)
+	game := NewGame(0, 0, 6, GameModeClassic)
 	gunslinger := game.Gunslingers[0]
 
 	if gunslinger.ShotHimself {
@@ -17,7 +17,7 @@ func TestGunslinger_MarkAsShotHimself_InNotPlayedGame(t *testing.T) {
 }
 
 func TestGunslinger_MarkAsShotHimself_InPlayedGame(t *testing.T) {
-	game := NewGame(0, 0, 6)
+	game := NewGame(0, 0, 6, GameModeClassic)
 	game.MarkAsPlayed("lead", "https://example.com/proof")
 
 	gunslinger := game.Gunslingers[0]

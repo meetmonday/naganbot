@@ -19,3 +19,6 @@
 
 # Project files
 /.env
+
+# Local database dumps
+/data/

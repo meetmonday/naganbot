@@ -3,16 +3,14 @@ package usecase
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/taranovegor/naganbot/domain"
 	"github.com/taranovegor/naganbot/service"
-	"gorm.io/gorm"
-	"time"
 )
 
-var (
-	ErrGameCooldown = errors.New("game cooldown")
-)
+var ErrCooldownActive = errors.New("cooldown active")
 
 type CreateGameUseCase struct {
 	locker   service.Locker
@@ -42,17 +40,24 @@ func (uc *CreateGameUseCase) Execute(chatID int64, ownerID int64) (*domain.Game,
 	}
 	defer locker.Unlock()
 
-	if uc.gameRepo.HasActiveOrCreatedTodayInChat(chatID) {
+	if uc.gameRepo.HasActiveInChat(chatID) {
 		game, err := uc.gameRepo.GetActiveForChat(chatID)
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, ErrGameCooldown
-			}
-
 			return nil, err
 		}
 
 		return game, nil
+	}
+
+	lastGame, err := uc.gameRepo.GetLastPlayedForChat(chatID)
+	if err != nil {
+		return nil, err
+	}
+	if lastGame != nil && lastGame.PlayedAt.Valid {
+		midnight := domain.NextMidnight(lastGame.PlayedAt.Time)
+		if !time.Now().After(midnight) {
+			return nil, ErrCooldownActive
+		}
 	}
 
 	owner, err := uc.userRepo.Get(ownerID)
@@ -72,6 +77,8 @@ func (uc *CreateGameUseCase) Execute(chatID int64, ownerID int64) (*domain.Game,
 		Owner:        owner,
 		CreatedAt:    time.Now(),
 		PlayersCount: chat.Settings.RequiredPlayers,
+		Mode:         chat.Settings.Mode,
+		Status:       domain.GameStatusLobby,
 	}
 
 	if err := uc.gameRepo.Store(game); err != nil {

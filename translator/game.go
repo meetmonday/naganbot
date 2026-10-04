@@ -49,6 +49,83 @@ var GameTranslations = translations{
 				{message: SimpleMessage("Добро пожаловать. Назад только вперёд ногами.")},
 			},
 		},
+		"joining the game details waiting": {
+			oneOf: []oneOf{
+				{message: SimpleMessage("\nСобралось %count. Жду минимум %min. Вместимость — %max. Кто следующий?")},
+				{message: SimpleMessage("\nПока только %count. Нужно минимум %min. Максимум — %max. Присоединяйтесь к обеду.")},
+				{message: SimpleMessage("\n%count жертв из %max. Минимум — %min. Я голоден.")},
+				{message: SimpleMessage("\nВ сборе %count. Требуется %min. Вместимость %max. Есть желающие?")},
+				{message: SimpleMessage("\nНабрано %count. Нужно минимум %min. Влезет %max. Не томите.")},
+			},
+		},
+		"joining the game details deadline": {
+			oneOf: []oneOf{
+				{message: SimpleMessage("\n%count/%max. Старт %deadline")},
+				{message: SimpleMessage("\n%count/%max. Трапеза %deadline")},
+				{message: SimpleMessage("\n%count/%max. Ужин %deadline")},
+				{message: SimpleMessage("\n%count/%max. Представление %deadline")},
+				{message: SimpleMessage("\n%count/%max. Жатва %deadline")},
+			},
+		},
+		"game starts at midnight": {
+			oneOf: []oneOf{
+				{message: SimpleMessage("в полночь. Романтично.")},
+				{message: SimpleMessage("в полночь. Самое время для чудес.")},
+				{message: SimpleMessage("в полночь. Бой курантов — и чей-то пульс остановится.")},
+				{message: SimpleMessage("в полночь. Ангелы и демоны делают ставки. Я за демонов.")},
+			},
+		},
+		"game starts in less than a minute": {
+			oneOf: []oneOf{
+				{message: SimpleMessage("меньше, чем через минуту. Я уже дрожу.")},
+				{message: SimpleMessage("с минуты на минуту. Не могу сдержать волнения.")},
+				{message: SimpleMessage("через несколько секунд. Я предвкушаю.")},
+				{message: SimpleMessage("вот-вот. Слышите? Это тишина перед выстрелом.")},
+			},
+		},
+		"game starts in minutes": {
+			oneOf: []oneOf{
+				{message: PluralMessage{
+					one:  "через %i минуту. Считаю секунды.",
+					few:  "через %i минуты. Считаю секунды.",
+					many: "через %i минут. Считаю секунды.",
+				}},
+				{message: PluralMessage{
+					one:  "через %i минуту. Я жду.",
+					few:  "через %i минуты. Я жду.",
+					many: "через %i минут. Я жду.",
+				}},
+				{message: PluralMessage{
+					one:  "через %i минуту. Время пошло.",
+					few:  "через %i минуты. Время пошло.",
+					many: "через %i минут. Время пошло.",
+				}},
+				{message: PluralMessage{
+					one:  "через %i минуту. Готовьтесь.",
+					few:  "через %i минуты. Готовьтесь.",
+					many: "через %i минут. Готовьтесь.",
+				}},
+			},
+		},
+		"cooldown active": {
+			oneOf: []oneOf{
+				{message: SimpleMessage("Дайте барабану остыть после последнего выстрела")},
+				{message: SimpleMessage("Смерть тоже любит делать перерывы, не спешите")},
+				{message: SimpleMessage("Подождите, пока духи прошлых игроков разойдутся")},
+				{message: SimpleMessage("Дайте нам время замести следы от прошлой игры")},
+				{message: SimpleMessage("Мы наделали слишком много шума, пока нам нужно залечь на дно")},
+				{message: SimpleMessage("Смерть пока занята другими")},
+			},
+		},
+		"not enough players": {
+			oneOf: []oneOf{
+				{message: SimpleMessage("Пока мало желающих. Позовите ещё кого-нибудь.")},
+				{message: SimpleMessage("Не хватает участников. Соберите компанию.")},
+				{message: SimpleMessage("Столько людей — это несерьёзно. Наберите побольше.")},
+				{message: SimpleMessage("Я не начну с таким количеством людей.")},
+				{message: SimpleMessage("Давайте ещё. Кто ещё готов рискнуть?")},
+			},
+		},
 		"play the game": {
 			oneOf: []oneOf{
 				{
@@ -212,6 +289,8 @@ var GameTranslations = translations{
 		"7 shot revolver":                        {message: SimpleMessage("Наган - 7 игроков")},
 		"8 shot revolver":                        {message: SimpleMessage("S&W Model 627 PC - 8 игроков")},
 		"9 shot revolver":                        {message: SimpleMessage("Diamondback Sidekick - 9 игроков")},
+		"dynamic shot revolver":                  {message: SimpleMessage("Динамический (3-10)")},
+		"dynamic mode enabled":                   {message: SimpleMessage("Режим — динамический. Жду в гости.")},
 		"revolver has been replaced": {message: PluralMessage{
 			one:  "Теперь в игре может участвовать %i игрок",
 			few:  "Теперь в игре могут участвовать %i игрока",
