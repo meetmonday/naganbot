@@ -61,6 +61,8 @@ func (s *GameScheduler) Start(ctx context.Context) {
 }
 
 func (s *GameScheduler) process(ctx context.Context, now time.Time) {
+	s.discardIdleLobbies(now)
+
 	games, err := s.gameRepo.GetActiveDynamicGames()
 	if err != nil {
 		log.Printf("scheduler: failed to load active dynamic games: %v", err)
@@ -69,6 +71,28 @@ func (s *GameScheduler) process(ctx context.Context, now time.Time) {
 
 	s.processDueGames(ctx, games, now)
 	s.processMidnightGames(ctx, games, now)
+}
+
+// discardIdleLobbies drops lobbies nobody joined for LobbyIdleTTL. Such a game
+// stays unplayed forever and, because HasActiveInChat only looks at played_at,
+// it would block the chat from creating a new one.
+func (s *GameScheduler) discardIdleLobbies(now time.Time) {
+	cutoff := now.Add(-domain.LobbyIdleTTL)
+
+	games, err := s.gameRepo.GetIdleLobbies(cutoff)
+	if err != nil {
+		log.Printf("scheduler: failed to load idle lobbies: %v", err)
+		return
+	}
+
+	for _, game := range games {
+		if err := s.gameRepo.Delete(game); err != nil {
+			log.Printf("scheduler: failed to discard idle lobby %s: %v", game.ID, err)
+			continue
+		}
+
+		log.Printf("scheduler: discarded idle lobby %s in chat %d", game.ID, game.ChatID)
+	}
 }
 
 func (s *GameScheduler) processDueGames(ctx context.Context, games []*domain.Game, now time.Time) {

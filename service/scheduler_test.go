@@ -11,7 +11,9 @@ import (
 )
 
 type mockGameRepoForScheduler struct {
-	games []*domain.Game
+	games        []*domain.Game
+	idleLobbies  []*domain.Game
+	deletedGames []uuid.UUID
 }
 
 func (m *mockGameRepoForScheduler) GetByID(id uuid.UUID) (*domain.Game, error) {
@@ -53,6 +55,24 @@ func (m *mockGameRepoForScheduler) HasActiveInChat(id int64) bool {
 
 func (m *mockGameRepoForScheduler) GetActiveDynamicGames() ([]*domain.Game, error) {
 	return m.games, nil
+}
+
+// GetIdleLobbies mirrors the repository: it applies domain.Game.IsIdle to the
+// candidates so the scheduler is only ever handed genuinely idle games.
+func (m *mockGameRepoForScheduler) GetIdleLobbies(cutoff time.Time) ([]*domain.Game, error) {
+	idle := make([]*domain.Game, 0, len(m.idleLobbies))
+	for _, game := range m.idleLobbies {
+		if game.IsIdle(cutoff) {
+			idle = append(idle, game)
+		}
+	}
+
+	return idle, nil
+}
+
+func (m *mockGameRepoForScheduler) Delete(game *domain.Game) error {
+	m.deletedGames = append(m.deletedGames, game.ID)
+	return nil
 }
 
 type mockGunslingerRepoForScheduler struct {
@@ -112,10 +132,18 @@ func newScheduler(
 	games []*domain.Game,
 	gunslingers map[uuid.UUID][]*domain.Gunslinger,
 ) (*GameScheduler, *mockStarter, *mockAnnouncer) {
+	return newSchedulerWithLobbies(games, gunslingers, nil)
+}
+
+func newSchedulerWithLobbies(
+	games []*domain.Game,
+	gunslingers map[uuid.UUID][]*domain.Gunslinger,
+	idleLobbies []*domain.Game,
+) (*GameScheduler, *mockStarter, *mockAnnouncer) {
 	starter := &mockStarter{}
 	announcer := &mockAnnouncer{}
 	scheduler := NewGameScheduler(
-		&mockGameRepoForScheduler{games: games},
+		&mockGameRepoForScheduler{games: games, idleLobbies: idleLobbies},
 		&mockGunslingerRepoForScheduler{byGame: gunslingers},
 		starter,
 		announcer,
@@ -199,5 +227,63 @@ func TestGameScheduler_ProcessMidnightGames_OnlyOncePerDay(t *testing.T) {
 
 	if len(starter.started) != 1 {
 		t.Errorf("expected midnight game to be started only once, got %v", starter.started)
+	}
+}
+
+func TestGameScheduler_DiscardIdleLobbies(t *testing.T) {
+	idleGame := &domain.Game{
+		ID:        uuid.Must(uuid.NewV7()),
+		ChatID:    1,
+		Mode:      domain.GameModeDynamic,
+		Status:    domain.GameStatusLobby,
+		CreatedAt: time.Now().Add(-domain.LobbyIdleTTL - time.Hour),
+	}
+
+	scheduler, _, _ := newSchedulerWithLobbies(nil, nil, []*domain.Game{idleGame})
+	scheduler.process(context.Background(), time.Now())
+
+	repo := scheduler.gameRepo.(*mockGameRepoForScheduler)
+	if len(repo.deletedGames) != 1 || repo.deletedGames[0] != idleGame.ID {
+		t.Errorf("expected idle lobby to be discarded, got %v", repo.deletedGames)
+	}
+}
+
+func TestGameScheduler_DiscardIdleLobbies_KeepsRecentlyJoined(t *testing.T) {
+	now := time.Now()
+	recent := &domain.Game{
+		ID:        uuid.Must(uuid.NewV7()),
+		ChatID:    1,
+		Mode:      domain.GameModeDynamic,
+		Status:    domain.GameStatusLobby,
+		CreatedAt: now.Add(-domain.LobbyIdleTTL - time.Hour),
+		Gunslingers: []*domain.Gunslinger{
+			{JoinedAt: now.Add(-time.Minute)},
+		},
+	}
+
+	scheduler, _, _ := newSchedulerWithLobbies(nil, nil, []*domain.Game{recent})
+	scheduler.process(context.Background(), now)
+
+	repo := scheduler.gameRepo.(*mockGameRepoForScheduler)
+	if len(repo.deletedGames) != 0 {
+		t.Errorf("expected lobby with a recent join to be kept, got %v", repo.deletedGames)
+	}
+}
+
+func TestGameScheduler_DiscardIdleLobbies_KeepsStartingGame(t *testing.T) {
+	starting := &domain.Game{
+		ID:        uuid.Must(uuid.NewV7()),
+		ChatID:    1,
+		Mode:      domain.GameModeDynamic,
+		Status:    domain.GameStatusStarting,
+		CreatedAt: time.Now().Add(-domain.LobbyIdleTTL - time.Hour),
+	}
+
+	scheduler, _, _ := newSchedulerWithLobbies(nil, nil, []*domain.Game{starting})
+	scheduler.process(context.Background(), time.Now())
+
+	repo := scheduler.gameRepo.(*mockGameRepoForScheduler)
+	if len(repo.deletedGames) != 0 {
+		t.Errorf("expected game with a deadline to be kept, got %v", repo.deletedGames)
 	}
 }

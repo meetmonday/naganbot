@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/taranovegor/naganbot/domain"
@@ -87,6 +88,45 @@ func (repo GameRepository) HasActiveInChat(chatID int64) bool {
 		Count(&counter)
 
 	return counter > 0
+}
+
+// GetIdleLobbies returns unplayed games that nobody joined recently. The coarse
+// filter runs in SQL, the precise one in domain.Game.IsIdle.
+func (repo GameRepository) GetIdleLobbies(cutoff time.Time) ([]*domain.Game, error) {
+	var games []*domain.Game
+	err := repo.orm.
+		Preload("Gunslingers", func(db *gorm.DB) *gorm.DB {
+			return db.Order("joined_at ASC")
+		}).
+		Where("played_at IS NULL").
+		Where("status = ?", domain.GameStatusLobby).
+		Where("created_at < ?", cutoff).
+		Find(&games).
+		Error
+	if err != nil {
+		return nil, err
+	}
+
+	idle := make([]*domain.Game, 0, len(games))
+	for _, game := range games {
+		if game.IsIdle(cutoff) {
+			idle = append(idle, game)
+		}
+	}
+
+	return idle, nil
+}
+
+// Delete removes the game together with its gunslingers, otherwise the foreign
+// key keeps the row alive.
+func (repo GameRepository) Delete(game *domain.Game) error {
+	return repo.orm.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("game_id = ?", game.ID).Delete(&domain.Gunslinger{}).Error; err != nil {
+			return err
+		}
+
+		return tx.Where("id = ?", game.ID).Delete(&domain.Game{}).Error
+	})
 }
 
 func (repo GameRepository) GetActiveDynamicGames() ([]*domain.Game, error) {

@@ -15,6 +15,73 @@ func TestGame_MarkAsPlayed(t *testing.T) {
 	}
 }
 
+func TestGame_IsIdle(t *testing.T) {
+	now := time.Date(2026, 7, 1, 14, 0, 0, 0, time.UTC)
+	cutoff := now.Add(-LobbyIdleTTL)
+
+	tests := []struct {
+		name     string
+		game     *Game
+		expected bool
+	}{
+		{
+			name:     "nobody joined for longer than ttl",
+			game:     &Game{Status: GameStatusLobby, CreatedAt: cutoff.Add(-time.Hour)},
+			expected: true,
+		},
+		{
+			name:     "recent join extends the life of a lobby",
+			game:     &Game{Status: GameStatusLobby, CreatedAt: cutoff.Add(-time.Hour), Gunslingers: []*Gunslinger{{JoinedAt: cutoff.Add(time.Hour)}}},
+			expected: false,
+		},
+		{
+			name:     "created recently",
+			game:     &Game{Status: GameStatusLobby, CreatedAt: now},
+			expected: false,
+		},
+		{
+			name:     "game with a deadline is never idle",
+			game:     &Game{Status: GameStatusStarting, CreatedAt: cutoff.Add(-time.Hour)},
+			expected: false,
+		},
+		{
+			name:     "played game is never idle",
+			game:     &Game{Status: GameStatusPlayed, CreatedAt: cutoff.Add(-time.Hour)},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.game.IsIdle(cutoff); got != tt.expected {
+				t.Errorf("IsIdle() = %v, expected %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGame_LastActivityAt(t *testing.T) {
+	now := time.Date(2026, 7, 1, 14, 0, 0, 0, time.UTC)
+
+	game := &Game{
+		CreatedAt: now.Add(-3 * time.Hour),
+		Gunslingers: []*Gunslinger{
+			{JoinedAt: now.Add(-2 * time.Hour)},
+			{JoinedAt: now.Add(-time.Minute)},
+			{JoinedAt: now.Add(-time.Hour)},
+		},
+	}
+
+	if got := game.LastActivityAt(); !got.Equal(now.Add(-time.Minute)) {
+		t.Errorf("LastActivityAt() = %v, expected %v", got, now.Add(-time.Minute))
+	}
+
+	empty := &Game{CreatedAt: now.Add(-time.Hour)}
+	if got := empty.LastActivityAt(); !got.Equal(now.Add(-time.Hour)) {
+		t.Errorf("LastActivityAt() without gunslingers = %v, expected %v", got, now.Add(-time.Hour))
+	}
+}
+
 func TestGame_UpdateStartDeadline(t *testing.T) {
 	now := time.Date(2026, 7, 1, 14, 0, 0, 0, time.UTC)
 

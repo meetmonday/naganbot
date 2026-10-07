@@ -140,9 +140,6 @@ func buildHandlerCommand(builder *di.Builder) {
 		Build: func(ctn di.Container) (interface{}, error) {
 			return command.NewForceHandler(
 				ctn.Get(Bot).(*service.Bot),
-				ctn.Get(Translator).(*translator.Translator),
-				ctn.Get(RepositoryGame).(domain.GameRepository),
-				ctn.Get(UseCasePlayGame).(*usecase.PlayGameUseCase),
 			), nil
 		},
 	})

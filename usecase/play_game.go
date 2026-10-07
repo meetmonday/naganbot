@@ -82,34 +82,6 @@ func (uc *PlayGameUseCase) canStart(game *domain.Game, gunslingers []*domain.Gun
 	return game.StartDeadline.Valid && !game.StartDeadline.Time.After(now)
 }
 
-func (uc *PlayGameUseCase) ForceExecute(ctx context.Context, gameID uuid.UUID) (*service.HitReport, error) {
-	locker := uc.locker.LockFor(fmt.Sprintf("play-game-%d", gameID.ID()))
-	if !locker.TryLock() {
-		return nil, service.ErrLockFailed
-	}
-	defer locker.Unlock()
-
-	game, err := uc.gameRepo.GetByID(gameID)
-	if err != nil {
-		return nil, err
-	}
-
-	if game.IsPlayed() {
-		return nil, ErrGameAlreadyPlayed
-	}
-
-	gunslingers, err := uc.gunslingerRepo.GetByGameID(game.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(gunslingers) == 0 {
-		return nil, ErrNotEnoughPlayers
-	}
-
-	return uc.play(ctx, game, gunslingers)
-}
-
 func (uc *PlayGameUseCase) play(ctx context.Context, game *domain.Game, gunslingers []*domain.Gunslinger) (*service.HitReport, error) {
 	report, err := uc.nagan.Shoot(ctx, game.ID, gunslingers)
 	if err != nil {
